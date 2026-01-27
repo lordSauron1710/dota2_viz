@@ -10,6 +10,12 @@ An interactive Three.js + Next.js viewer for Dota 2 hero assets. The v2 UI is re
 - Load local `.fbx` files at runtime.
 - Assets are served from the repo `assets/` directory (no more `public/assets`).
 
+## Tech stack
+
+- Next.js `^14.2.35`
+- React `18.3.1`
+- Three.js `0.160.0`
+
 ## Quick start (Next.js)
 
 ```bash
