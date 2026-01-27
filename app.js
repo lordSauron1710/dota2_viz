@@ -33,6 +33,7 @@ scene.fog = new THREE.Fog(0x0f1218, 4, 20);
 
 const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 2000);
 const defaultCameraPosition = new THREE.Vector3(5, 4, 7);
+const defaultCameraTarget = new THREE.Vector3(0, 1, 0);
 camera.position.copy(defaultCameraPosition);
 
 const controls = new OrbitControls(camera, canvas);
@@ -106,6 +107,8 @@ let skeletonHelper = null;
 let isPlaying = true;
 let proceduralMode = false;
 let currentDuration = 0;
+let fitCameraPosition = defaultCameraPosition.clone();
+let fitCameraTarget = defaultCameraTarget.clone();
 
 function clearModel() {
   if (!model) return;
@@ -125,6 +128,11 @@ function clearModel() {
     }
   });
   model = null;
+}
+
+function setStatus(message, tone = "ok") {
+  statusEl.textContent = message;
+  statusEl.dataset.tone = tone;
 }
 
 function updateStats() {
@@ -177,7 +185,15 @@ function fitCameraToObject(object) {
   const distance = maxDim * scale * 3.3;
   camera.position.set(distance, distance * 0.65, distance * 0.9);
   controls.target.set(0, size.y * 0.35 * scale, 0);
+  fitCameraPosition = camera.position.clone();
+  fitCameraTarget = controls.target.clone();
   controls.update();
+}
+
+function setAnimationUiEnabled(enabled) {
+  timeInput.disabled = !enabled;
+  loopInput.disabled = !enabled;
+  clampInput.disabled = !enabled;
 }
 
 function setAnimationOptions() {
@@ -190,6 +206,9 @@ function setAnimationOptions() {
     clipSelect.appendChild(option);
     proceduralMode = true;
     currentDuration = 0;
+    timeInput.value = "0";
+    timeInput.max = "1";
+    setAnimationUiEnabled(false);
     return;
   }
 
@@ -205,13 +224,14 @@ function setAnimationOptions() {
     clipSelect.appendChild(option);
   });
 
+  setAnimationUiEnabled(true);
   clipSelect.value = "0";
-  proceduralMode = false;
   playClip(0);
 }
 
 function playClip(index) {
   if (!mixer || !clips[index]) return;
+  proceduralMode = false;
   const clip = clips[index];
   const action = mixer.clipAction(clip);
 
@@ -258,9 +278,19 @@ function setSkeletonVisible(visible) {
   }
 }
 
+async function detectLfsPointer(url) {
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    const text = await response.text();
+    return text.startsWith("version https://git-lfs.github.com/spec");
+  } catch (error) {
+    return false;
+  }
+}
+
 function loadFbx(url, nameLabel) {
   const loader = new FBXLoader(manager);
-  statusEl.textContent = "Loading model...";
+  setStatus("Loading model...", "loading");
 
   loader.load(
     url,
@@ -281,14 +311,22 @@ function loadFbx(url, nameLabel) {
       setSkeletonVisible(showSkeletonInput.checked);
       assetName.textContent = nameLabel;
 
-      statusEl.textContent = clips.length
-        ? `Loaded. ${clips.length} animation(s).`
-        : "Loaded. Procedural idle active.";
+      setStatus(
+        clips.length
+          ? `Loaded. ${clips.length} animation(s).`
+          : "Loaded. Procedural idle active.",
+        "ok"
+      );
     },
     undefined,
-    (error) => {
+    async (error) => {
       console.error(error);
-      statusEl.textContent = "Failed to load FBX model.";
+      const isPointer = await detectLfsPointer(url);
+      if (isPointer) {
+        setStatus("FBX is a Git LFS pointer. Run `git lfs pull` and reload.", "error");
+      } else {
+        setStatus("Failed to load FBX model.", "error");
+      }
     }
   );
 }
@@ -300,6 +338,8 @@ clipSelect.addEventListener("change", (event) => {
     if (mixer) mixer.stopAllAction();
     activeAction = null;
     currentDuration = 0;
+    timeInput.value = "0";
+    timeInput.max = "1";
     return;
   }
   proceduralMode = false;
@@ -312,11 +352,13 @@ speedInput.addEventListener("input", () => {
 });
 
 loopInput.addEventListener("change", () => {
-  if (activeAction) playClip(clipSelect.value === "procedural" ? 0 : Number(clipSelect.value));
+  if (proceduralMode) return;
+  if (activeAction) playClip(Number(clipSelect.value));
 });
 
 clampInput.addEventListener("change", () => {
-  if (activeAction) activeAction.clampWhenFinished = clampInput.checked;
+  if (!activeAction) return;
+  activeAction.clampWhenFinished = clampInput.checked;
 });
 
 timeInput.addEventListener("input", (event) => {
@@ -346,8 +388,8 @@ togglePlay.addEventListener("click", () => {
 });
 
 resetView.addEventListener("click", () => {
-  camera.position.copy(defaultCameraPosition);
-  controls.target.set(0, 1, 0);
+  camera.position.copy(fitCameraPosition);
+  controls.target.copy(fitCameraTarget);
   controls.update();
 });
 
@@ -367,7 +409,7 @@ function animate() {
       mixer.update(delta);
       updateAnimationTime();
     } else if (model) {
-      const t = clock.elapsedTime * 0.6;
+      const t = clock.elapsedTime * 0.6 * Number(speedInput.value || 1);
       model.rotation.y = t * 0.35;
       model.position.y = Math.sin(t * 1.5) * 0.04;
     }

@@ -143,6 +143,14 @@ body {
   color: var(--accent-2);
 }
 
+.panel__status[data-tone="error"] {
+  color: #ff8f8f;
+}
+
+.panel__status[data-tone="loading"] {
+  color: #f4d06f;
+}
+
 .panel__stats {
   font-size: 11px;
   line-height: 1.4;
