@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kez Viewer</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <div class="hud">
+        <div class="hud__title">Kez Viewer</div>
+        <div class="hud__row">
+          <button id="toggle" class="hud__button">Pause</button>
+          <label class="hud__label">
+            Speed
+            <input id="speed" type="range" min="0" max="2" step="0.01" value="1" />
+          </label>
+        </div>
+        <div class="hud__row">
+          <label class="hud__label">
+            Animation
+            <select id="clip"></select>
+          </label>
+        </div>
+        <div id="status" class="hud__status">Loading…</div>
+      </div>
+      <canvas id="stage"></canvas>
+    </main>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
