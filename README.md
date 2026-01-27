@@ -1,14 +1,6 @@
 # dota2_viz
 
-Comprehensive Three.js viewer for the Kez hero model with animation controls and diagnostics.
-
-## Viewer features
-
-- FBX loader with TGA texture support and automatic texture path remapping.
-- Animation controls: clip picker, speed, time scrub, loop, and clamp.
-- View controls: auto-rotate, grid/floor toggles, skeleton helper, reset view.
-- Stats readout for draw calls, triangles, geometries, and textures.
-- Local FBX upload to preview other assets.
+Simple Three.js viewer for the Kez hero model, plus the bundled asset pack.
 
 ## Asset structure
 
@@ -35,3 +27,48 @@ python3 -m http.server
 ```
 
 Open `http://localhost:8000`.
+
+## Next.js viewer (v1)
+
+This repo also includes a Next.js + Three.js viewer for a single locally stored Dota 2 hero model. It loads the model from `/public`, centers and fits the camera, and exposes animation, lighting, and playback controls.
+
+### Asset placement
+
+Place your hero asset at the exact path below (FBX for the Kez asset):
+
+```
+/public/assets/kez/kez_econ.fbx
+```
+
+If the model needs external textures, keep them under the Kez assets folder:
+
+```
+/public/assets/kez/materials/*
+```
+
+For the Kez asset folder, keep the `materials` folder (including `materials/base`) alongside `kez_econ.fbx` under `/public/assets/kez/`. The `.ma` file is not used by the viewer.
+
+### Running locally
+
+```bash
+npm install
+npm run dev
+```
+
+Then open `http://localhost:3000/hero`.
+
+### Deploying to Vercel
+
+1. Push this repository to GitHub.
+2. Create a new project in Vercel and import the repo.
+3. Ensure the Kez asset exists in the `/public/assets/kez/` path before deploying.
+4. Vercel will detect Next.js automatically. Use the default build command (`npm run build`).
+
+### URL state
+
+The viewer persists key settings in the `/hero` query string:
+
+- `anim=<clipName>`
+- `speed=<float>`
+- `preset=<studio|neutral|rim>`
+- `autoplay=1|0`
