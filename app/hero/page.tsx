@@ -1,11 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Viewer3D, { type Viewer3DHandle } from "../../components/Viewer3D";
 import ViewerControls from "../../components/ViewerControls";
+import { HEROES } from "../../lib/heroes";
 import { type UrlState, parseUrlState, serializeUrlState } from "../../lib/urlState";
 import "./hero.css";
+
+const DEFAULT_MODEL_URL = "/assets/kez/kez_econ.fbx";
+const DEFAULT_MODEL_LABEL = "kez_econ.fbx";
 
 function areUrlStatesEqual(a: UrlState, b: UrlState) {
   return (
@@ -16,10 +20,50 @@ function areUrlStatesEqual(a: UrlState, b: UrlState) {
   );
 }
 
+function ResetIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M4 12a8 8 0 1 0 2.3-5.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 5v5h5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" />
+      <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 5l12 7-12 7V5z" fill="currentColor" />
+    </svg>
+  );
+}
+
 export default function HeroPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const viewerRef = useRef<Viewer3DHandle | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
 
   const parsedState = useMemo(() => {
     return parseUrlState(new URLSearchParams(searchParams.toString()));
@@ -28,6 +72,14 @@ export default function HeroPage() {
   const [urlState, setUrlState] = useState<UrlState>(parsedState);
   const [animations, setAnimations] = useState<string[]>([]);
   const [backgroundMode, setBackgroundMode] = useState<"gradient" | "solid">("gradient");
+  const [selectedHero, setSelectedHero] = useState<string>(
+    HEROES.includes("Kez") ? "Kez" : HEROES[0] ?? "Kez",
+  );
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileLabel, setFileLabel] = useState("No file selected");
+  const [modelUrl, setModelUrl] = useState(DEFAULT_MODEL_URL);
+  const [modelLabel, setModelLabel] = useState(DEFAULT_MODEL_LABEL);
+  const [modelSource, setModelSource] = useState<"bundled" | "upload">("bundled");
 
   useEffect(() => {
     if (!areUrlStatesEqual(urlState, parsedState)) {
@@ -40,11 +92,23 @@ export default function HeroPage() {
     router.replace(`/hero?${params}`);
   }, [router, urlState]);
 
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
+
   const handleClipsLoaded = useCallback((clips: string[]) => {
     setAnimations(clips);
     setUrlState((prev) => {
       if (clips.length > 0 && (!prev.anim || !clips.includes(prev.anim))) {
         return { ...prev, anim: clips[0] };
+      }
+      if (clips.length === 0 && prev.anim) {
+        return { ...prev, anim: null };
       }
       return prev;
     });
@@ -63,67 +127,114 @@ export default function HeroPage() {
     viewerRef.current?.resetCamera();
   }, []);
 
+  const handleFileChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    setSelectedFile(file);
+    setFileLabel(file ? file.name : "No file selected");
+  }, []);
+
+  const handleLoadFile = useCallback(() => {
+    if (!selectedFile) {
+      return;
+    }
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+    }
+    const objectUrl = URL.createObjectURL(selectedFile);
+    objectUrlRef.current = objectUrl;
+    setModelUrl(objectUrl);
+    setModelLabel(selectedFile.name);
+    setModelSource("upload");
+    setAnimations([]);
+    setUrlState((prev) => ({ ...prev, anim: null }));
+  }, [selectedFile]);
+
   const { anim, speed, preset, autoplay } = urlState;
-  const itemBudgets = [
-    {
-      name: "Head",
-      color: "#b51414",
-      lod0: "3000",
-      lod1: "1200",
-      texture: "512H x 512W",
-    },
-    {
-      name: "Shoulders",
-      color: "#f0e20f",
-      lod0: "6000",
-      lod1: "2400",
-      texture: "512H x 512W",
-    },
-    {
-      name: "Weapon",
-      color: "#2ea14b",
-      lod0: "2500",
-      lod1: "1000",
-      texture: "256H x 256W",
-    },
-    {
-      name: "Weapon Offhand",
-      color: "#2b6f6b",
-      lod0: "2000",
-      lod1: "800",
-      texture: "256H x 256W",
-    },
-    {
-      name: "Belt",
-      color: "#2f35c9",
-      lod0: "4000",
-      lod1: "1600",
-      texture: "512H x 512W",
-    },
-  ];
 
   return (
-    <main>
-      <div className="hero-layout">
-        <header className="hero-header">
+    <main className="hero-shell">
+      <header className="topbar">
+        <div className="brand">
+          <div className="brand__mark">D2</div>
           <div>
-            <p className="eyebrow">Single Hero 3D Viewer</p>
-            <h1>Kez Hero Lab</h1>
-            <p>
-              This viewer loads the Kez hero asset locally and lets you explore
-              available animation clips. Use the controls to tweak playback,
-              lighting, and camera position.
-            </p>
+            <p className="brand__eyebrow">Three.js Playground</p>
+            <h1>DotA2 Hero Viewer</h1>
           </div>
-          <div className="hero-header__status">
-            <span>Asset path</span>
-            <strong>/public/assets/kez/kez_econ.fbx</strong>
-          </div>
-        </header>
+        </div>
+        <div className="topbar__actions">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={handleResetCamera}
+            aria-label="Reset view"
+            title="Reset view"
+          >
+            <ResetIcon />
+          </button>
+          <button
+            type="button"
+            className={`icon-button ${autoplay ? "is-active" : ""}`}
+            onClick={() => setUrlState((prev) => ({ ...prev, autoplay: !prev.autoplay }))}
+            aria-label={autoplay ? "Pause animation" : "Play animation"}
+            title={autoplay ? "Pause animation" : "Play animation"}
+          >
+            {autoplay ? <PauseIcon /> : <PlayIcon />}
+          </button>
+        </div>
+      </header>
 
-        <section className="hero-content">
+      <div className="hero-grid">
+        <aside className="panel panel--left">
+          <div className="panel__header">
+            <span>Asset</span>
+            <span className="panel__badge">
+              {modelSource === "upload" ? "Local" : "Bundled"}
+            </span>
+          </div>
+
+          <div className="panel__section">
+            <label htmlFor="hero-select">Hero</label>
+            <select
+              id="hero-select"
+              value={selectedHero}
+              onChange={(event) => setSelectedHero(event.target.value)}
+            >
+              {HEROES.map((hero) => (
+                <option key={hero} value={hero}>
+                  {hero}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="panel__section">
+            <label htmlFor="fbx-input">Load FBX</label>
+            <div className="file-row">
+              <input
+                id="fbx-input"
+                type="file"
+                accept=".fbx"
+                onChange={handleFileChange}
+              />
+              <button type="button" onClick={handleLoadFile} disabled={!selectedFile}>
+                Load FBX
+              </button>
+            </div>
+            <p className="panel__helper">{fileLabel}</p>
+          </div>
+
+          <div className="panel__section">
+            <label>Current asset</label>
+            <div className="panel__meta">
+              {modelSource === "upload" ? modelLabel : DEFAULT_MODEL_URL}
+            </div>
+          </div>
+        </aside>
+
+        <section className="viewer-frame">
           <Viewer3D
             ref={viewerRef}
+            modelUrl={modelUrl}
             activeAnimation={anim}
             autoplay={autoplay}
             speed={speed}
@@ -132,65 +243,29 @@ export default function HeroPage() {
             onClipsLoaded={handleClipsLoaded}
             onActiveClipChange={handleActiveClipChange}
           />
-          <ViewerControls
-            animations={animations}
-            activeAnimation={anim}
-            autoplay={autoplay}
-            speed={speed}
-            preset={preset}
-            backgroundMode={backgroundMode}
-            onAnimationChange={(clip) => setUrlState((prev) => ({ ...prev, anim: clip }))}
-            onAutoplayChange={(next) => setUrlState((prev) => ({ ...prev, autoplay: next }))}
-            onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
-            onPresetChange={(value) => setUrlState((prev) => ({ ...prev, preset: value }))}
-            onBackgroundChange={setBackgroundMode}
-            onResetCamera={handleResetCamera}
-          />
-        </section>
-        <section className="kez-info">
-          <div className="kez-bio">
+          <div className="viewer-hud">
             <div>
-              <h2>Kez bio</h2>
-              <blockquote>
-                “I was born with a price on my head. As I got better at causing
-                trouble, that price went up. Every time Queen Imperia raised the
-                bounty, I knew I must have done something right. I think that’s
-                the worst part about being gone so long in Icewrack... I’ve got
-                to get that price back up to a respectable number.”
-              </blockquote>
-              <div className="kez-bio__links">
-                <span>Model and texture files</span>
-                <a href="/assets/kez/kez_econ.fbx" download>
-                  Download Kez model
-                </a>
-              </div>
+              <span className="hud-label">Hero</span>
+              <strong>{selectedHero}</strong>
             </div>
-            <div className="kez-bio__image" aria-hidden="true">
-              <span>Kez portrait placeholder</span>
+            <div>
+              <span className="hud-label">Clip</span>
+              <strong>{anim ?? "None"}</strong>
             </div>
-          </div>
-          <div className="kez-budgets">
-            <h3>Item slots and their budgets</h3>
-            <ul>
-              {itemBudgets.map((budget) => (
-                <li key={budget.name}>
-                  <div className="budget-title">
-                    <span
-                      className="budget-swatch"
-                      style={{ backgroundColor: budget.color }}
-                    />
-                    <strong>{budget.name}</strong>
-                  </div>
-                  <ul>
-                    <li>LoD0 Triangle Limit: {budget.lod0}</li>
-                    <li>LoD1 Triangle Limit: {budget.lod1}</li>
-                    <li>Texture Size: {budget.texture}</li>
-                  </ul>
-                </li>
-              ))}
-            </ul>
           </div>
         </section>
+
+        <ViewerControls
+          animations={animations}
+          activeAnimation={anim}
+          speed={speed}
+          preset={preset}
+          backgroundMode={backgroundMode}
+          onAnimationChange={(clip) => setUrlState((prev) => ({ ...prev, anim: clip }))}
+          onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
+          onPresetChange={(value) => setUrlState((prev) => ({ ...prev, preset: value }))}
+          onBackgroundChange={setBackgroundMode}
+        />
       </div>
     </main>
   );
