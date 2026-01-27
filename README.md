@@ -9,6 +9,7 @@ Simple Three.js viewer for the Kez hero model, plus the bundled asset pack.
 - `assets/kez/materials/` — textures/material maps used by the model.
 - `assets/kez/materials/base/` — base/shared material maps.
 - `assets/kez_instructions.png` — reference sheet with usage notes.
+- Asset source: `https://www.dota2.com/workshop/requirements/kez`.
 
 ## Notes from `kez_instructions.png`
 
