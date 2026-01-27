@@ -1,6 +1,14 @@
 # dota2_viz
 
-Simple Three.js viewer for the Kez hero model, plus the bundled asset pack.
+Comprehensive Three.js viewer for the Kez hero model with animation controls and diagnostics.
+
+## Viewer features
+
+- FBX loader with TGA texture support and automatic texture path remapping.
+- Animation controls: clip picker, speed, time scrub, loop, and clamp.
+- View controls: auto-rotate, grid/floor toggles, skeleton helper, reset view.
+- Stats readout for draw calls, triangles, geometries, and textures.
+- Local FBX upload to preview other assets.
 
 ## Asset structure
 
