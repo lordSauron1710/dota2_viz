@@ -6,6 +6,7 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  type Ref,
 } from "react";
 import * as THREE from "three";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
@@ -14,14 +15,12 @@ import { fitCameraToObject } from "../lib/three/fitCamera";
 import { createLightingPreset } from "../lib/three/lights";
 import type { LightingPreset } from "../lib/urlState";
 
-const MODEL_BASE_PATH = "/assets/kez/";
-const MODEL_FILE = "kez_econ.fbx";
-
 export type Viewer3DHandle = {
   resetCamera: () => void;
 };
 
 type Viewer3DProps = {
+  modelUrl: string;
   activeAnimation: string | null;
   autoplay: boolean;
   speed: number;
@@ -33,6 +32,7 @@ type Viewer3DProps = {
 
 function Viewer3D(
   {
+    modelUrl,
     activeAnimation,
     autoplay,
     speed,
@@ -41,7 +41,7 @@ function Viewer3D(
     onClipsLoaded,
     onActiveClipChange,
   }: Viewer3DProps,
-  ref: React.Ref<Viewer3DHandle>,
+  ref: Ref<Viewer3DHandle>,
 ) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -101,14 +101,22 @@ function Viewer3D(
 
     const floorGeometry = new THREE.CircleGeometry(6, 64);
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: 0x0f162b,
-      roughness: 0.7,
-      metalness: 0.15,
+      color: 0x0b0b0b,
+      roughness: 0.85,
+      metalness: 0.1,
     });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     floor.position.y = -1.4;
     scene.add(floor);
+
+    const grid = new THREE.GridHelper(12, 24, 0xf06a1d, 0x1a1a1a);
+    grid.position.y = -1.39;
+    if (!Array.isArray(grid.material)) {
+      grid.material.opacity = 0.35;
+      grid.material.transparent = true;
+    }
+    scene.add(grid);
 
     const resize = () => {
       const { clientWidth, clientHeight } = container;
@@ -150,10 +158,8 @@ function Viewer3D(
         }
       };
       const loader = new FBXLoader(manager);
-      loader.setPath(MODEL_BASE_PATH);
-
       loader.load(
-        MODEL_FILE,
+        modelUrl,
         (model) => {
           model.traverse((child) => {
             if (child instanceof THREE.Mesh) {
@@ -212,6 +218,12 @@ function Viewer3D(
       controls.dispose();
       renderer.dispose();
       lightsGroup.clear();
+      grid.geometry.dispose();
+      if (!Array.isArray(grid.material)) {
+        grid.material.dispose();
+      } else {
+        grid.material.forEach((material) => material.dispose());
+      }
       if (modelRef.current) {
         modelRef.current.traverse((child) => {
           if (child instanceof THREE.Mesh) {
@@ -235,7 +247,7 @@ function Viewer3D(
       sceneRef.current = null;
       lightsGroupRef.current = null;
     };
-  }, [onClipsLoaded, retryKey]);
+  }, [modelUrl, onClipsLoaded, retryKey]);
 
   useEffect(() => {
     const lightsGroup = lightsGroupRef.current;
@@ -301,7 +313,7 @@ function Viewer3D(
       {isLoading && (
         <div className="viewer__overlay">
           <div>
-            <p>Loading hero model...</p>
+            <p>Loading hero asset...</p>
             <strong>{loadingProgress}%</strong>
           </div>
         </div>

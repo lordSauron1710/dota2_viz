@@ -5,43 +5,39 @@ import type { LightingPreset } from "../lib/urlState";
 type ViewerControlsProps = {
   animations: string[];
   activeAnimation: string | null;
-  autoplay: boolean;
   speed: number;
   preset: LightingPreset;
   backgroundMode: "gradient" | "solid";
   onAnimationChange: (clip: string) => void;
-  onAutoplayChange: (next: boolean) => void;
   onSpeedChange: (value: number) => void;
   onPresetChange: (preset: LightingPreset) => void;
   onBackgroundChange: (mode: "gradient" | "solid") => void;
-  onResetCamera: () => void;
 };
 
 export default function ViewerControls({
   animations,
   activeAnimation,
-  autoplay,
   speed,
   preset,
   backgroundMode,
   onAnimationChange,
-  onAutoplayChange,
   onSpeedChange,
   onPresetChange,
   onBackgroundChange,
-  onResetCamera,
 }: ViewerControlsProps) {
   const hasAnimations = animations.length > 0;
 
   return (
-    <section className="control-panel">
-      <header>
-        <p className="eyebrow">Hero Controls</p>
-        <h2>Animation &amp; Lighting</h2>
-      </header>
+    <aside className="panel panel--right">
+      <div className="panel__header">
+        <span>Animation</span>
+        <span className="panel__badge">
+          {hasAnimations ? `${animations.length} clips` : "No clips"}
+        </span>
+      </div>
 
-      <div className="control-panel__section">
-        <label htmlFor="animation-select">Animation Clip</label>
+      <div className="panel__section">
+        <label htmlFor="animation-select">Clip</label>
         <select
           id="animation-select"
           value={activeAnimation ?? ""}
@@ -57,18 +53,9 @@ export default function ViewerControls({
         </select>
       </div>
 
-      <div className="control-panel__row">
-        <button type="button" onClick={() => onAutoplayChange(!autoplay)}>
-          {autoplay ? "Pause" : "Play"}
-        </button>
-        <button type="button" onClick={onResetCamera}>
-          Reset Camera
-        </button>
-      </div>
-
-      <div className="control-panel__section">
-        <label htmlFor="speed-range">Playback Speed</label>
-        <div className="control-panel__range">
+      <div className="panel__section">
+        <label htmlFor="speed-range">Speed</label>
+        <div className="range-row">
           <input
             id="speed-range"
             type="range"
@@ -82,8 +69,14 @@ export default function ViewerControls({
         </div>
       </div>
 
-      <div className="control-panel__section">
-        <label htmlFor="lighting-select">Lighting Preset</label>
+      <div className="panel__divider" />
+
+      <div className="panel__header">
+        <span>Scene</span>
+      </div>
+
+      <div className="panel__section">
+        <label htmlFor="lighting-select">Lighting</label>
         <select
           id="lighting-select"
           value={preset}
@@ -95,8 +88,8 @@ export default function ViewerControls({
         </select>
       </div>
 
-      <div className="control-panel__section">
-        <label htmlFor="background-select">Background</label>
+      <div className="panel__section">
+        <label htmlFor="background-select">Backdrop</label>
         <select
           id="background-select"
           value={backgroundMode}
@@ -106,6 +99,6 @@ export default function ViewerControls({
           <option value="solid">Solid</option>
         </select>
       </div>
-    </section>
+    </aside>
   );
 }
