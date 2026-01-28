@@ -1,44 +1,100 @@
-# DotA2 Hero Viewer 
+# DotA2 Hero Viewer
 
-An interactive Three.js + Next.js viewer for Dota 2 hero assets. The v2 UI is rebuilt from the ground up with a new three-panel layout, icon-based controls, and a hero picker + FBX loader.
+A dynamic webapp for exploring Dota 2 hero assets in real time. The UI adapts per-hero (accent colors shift with the selected hero), and the viewer is built for lookdev, pose tuning, and lighting exploration directly in the browser.
 
-## Highlights
+## Project idea
 
-- Rebuilt UI inspired by a three-panel playground layout.
-- Reset/Pause controls replaced with icon buttons.
-- Hero dropdown list for quick selection.
-- Load local `.fbx` files at runtime.
-- Assets are served from the repo `assets/` directory (no more `public/assets`).
+Make hero assets easy to browse, compare, and tune without external DCC tools. The viewer emphasizes fast iteration on materials, lighting, and poses while keeping the models and textures close to their original workshop-ready structure.
 
-## UI snapshots
+## Features
 
-Initial state:
+- Hero selection for Kez, Doom, and Monkey King.
+- Pose controls with playback and speed tuning.
+- Dynamic UI accents that change with the selected hero.
+- Lighting presets plus environment HDR and backdrop controls.
+- Local screenshot capture after adjusting pose, environment, and background.
+- One-click reset of the scene state.
+- Pause/play control for the current animation.
+- Texture resolution + fallbacks for Valve FBX + TGA layouts.
+- Optional local FBX loading via file picker.
 
-![DotA2 Hero Viewer UI (initial)](ui%20updates/kez_ui_1.png)
+## UI samples
 
-Current state:
+![Kez sample](ui%20updates/kez_final.png)
 
-![DotA2 Hero Viewer UI (current)](ui%20updates/kez_ui_3.png)
+![Doom sample](ui%20updates/doom_final.png)
 
-## Desired state (project direction)
-
-Kez is a placeholder hero. The intended end state is a viewer that can import any hero by fetching the correct assets from the official Dota 2 workshop requirements pages.
-
-Planned direction:
-- Auto-discover available heroes from the workshop requirements index.
-- Fetch the hero-specific asset pack (FBX + textures) on demand.
-- Cache downloaded assets locally under `assets/<hero>/`.
-- Keep the hero list in the UI in sync with the available workshop data.
-
-For now, assets are still placed manually under `assets/<hero>/`, and the UI uses Kez as the default.
+![Monkey King sample](ui%20updates/monkey_final.png)
 
 ## Tech stack
 
-- Next.js `^14.2.35`
-- React `18.3.1`
-- Three.js `0.160.0`
+- Next.js 14
+- React 18
+- Three.js 0.160
+- WebGL renderer with EffectComposer + SSAO pass
+- EXR HDR environment maps
 
-## Quick start (Next.js)
+## Model storage and rendering
+
+### Storage
+
+Hero assets live under `assets/<hero>/` and are tracked with Git LFS. Each hero folder contains:
+
+- FBX model files (primary runtime source)
+- Optional MA files (reference only)
+- `materials/` textures (TGA/DDS) in Valve layout
+- `materials/base/` for shared base textures
+
+### Serving
+
+The app serves `/assets/*` using a Next.js route handler that streams from the repo `assets/` directory:
+
+- Route: `app/assets/[...path]/route.ts`
+- Example: `assets/doom_bringer/doom_econ.fbx` is served as `/assets/doom_bringer/doom_econ.fbx`
+
+### Rendering
+
+At runtime the viewer:
+
+1) Loads FBX models with Three.js `FBXLoader`.
+2) Resolves textures using `TGALoader`/`DDSLoader` and Valve material path rules.
+3) Applies fallback textures for missing maps and corrects color space for albedo/emissive.
+4) Tunes hero materials for readability while preserving original maps.
+5) Drives lighting with custom rigs, SSAO, and tone mapping.
+
+## Asset layout
+
+```
+assets/
+  kez/
+    kez_econ.fbx
+    kez_econ.ma
+    materials/
+      base/
+      ...
+  doom_bringer/
+    doom_econ.fbx
+    doom_econ.ma
+    materials/
+      base/
+      ...
+  monkey_king/
+    monkey_king_econ.fbx
+    monkey_king_econ.ma
+    materials/
+      base/
+      ...
+```
+
+## Timeline (from CHANGES.md)
+
+2026-01-27 -> v0 baseline, Git LFS introduced, viewer rebuilt, UI v2 layout
+2026-01-27 -> rendering pipeline + playback logic + screenshots added
+2026-01-28 -> lighting presets, HDR environment, lore panel, and accent styling
+2026-01-28 -> multi-hero scaling and Monkey King rendering fixes
+2026-01-28 -> asset cleanup: Lion and Brewmaster removed
+
+## Quick start
 
 ```bash
 npm install
@@ -47,72 +103,12 @@ npm run dev
 
 Open `http://localhost:3000/hero`.
 
-## Asset layout
+## Sources and attribution
 
-All hero assets live in the top-level `assets/` directory:
-
-```
-assets/
-  kez/
-    kez_econ.fbx
-    kez_econ.ma
-    kez_instructions.png
-    materials/
-      base/
-      ...
-```
-
-Notes:
-- `kez_econ.ma` is included for reference but is not used by the viewer.
-- Textures referenced by the FBX should remain under the same hero folder.
-
-## Asset serving in Next.js
-
-The app serves `/assets/*` via a Next.js route handler that reads from the repo `assets/` directory.
-
-Path examples:
-- `assets/kez/kez_econ.fbx` is served as `/assets/kez/kez_econ.fbx`
-- `assets/kez/materials/...` is served as `/assets/kez/materials/...`
-
-The route is implemented in `app/assets/[...path]/route.ts`.
-
-## Loading models
-
-There are two ways to load an FBX:
-
-1) Bundled asset (default)
-- Uses `/assets/kez/kez_econ.fbx`.
-
-2) Local file
-- Use the "Load FBX" button to select a local `.fbx` file.
-- The viewer loads it using a local object URL.
-
-## Hero list
-
-The hero dropdown is pre-populated from the Dota 2 workshop requirements hero list.
-The list lives in `lib/heroes.ts` and can be updated if new heroes are added.
-
-## Deploying to Vercel
-
-1. Push this repository to GitHub.
-2. Create a new project in Vercel and import the repo.
-3. Ensure hero assets exist under `assets/<hero>/` before deploying.
-4. Vercel will detect Next.js automatically. Use the default build command (`npm run build`).
-
-## URL state
-
-The viewer persists key settings in the `/hero` query string:
-
-- `anim=<clipName>`
-- `speed=<float>`
-- `autoplay=1|0`
-
-## Asset source
-
-Hero assets come from the Dota 2 workshop requirements pages (Kez is the current example):
+Source reference:
 
 ```
 https://www.dota2.com/workshop/requirements/
 ```
 
-All Assets belong to Valve Corp. 
+All Dota 2 hero assets are credited to Valve Corporation.
