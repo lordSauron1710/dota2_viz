@@ -92,6 +92,7 @@ assets/
 2026-01-28 -> lighting presets, HDR environment, lore panel, and accent styling
 2026-01-28 -> multi-hero scaling and Monkey King rendering fixes
 2026-01-28 -> asset cleanup: Lion and Brewmaster removed
+2026-01-28 -> hero selected UI samples + default static pose
 
 ## Quick start
 

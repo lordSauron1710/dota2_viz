@@ -2,6 +2,7 @@
 
 This file lists project changes in chronological order based on the git commit history.
 
+- 2026-01-28 18:19:25 1b56626 Add hero UI samples and default static pose
 - 2026-01-28 15:25:51 chore: remove brewmaster assets and hero
 - 2026-01-28 14:06:15 chore: remove lion assets
 - 2026-01-28 13:52:43 255055a fix: tune hero rendering and monkey king textures
