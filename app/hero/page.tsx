@@ -385,7 +385,13 @@ export default function HeroPage() {
           onReset={handleResetCamera}
           onToggleAutoplay={handleToggleAutoplay}
           onScreenshot={() => viewerRef.current?.captureScreenshot()}
-          onPoseChange={(value) => setUrlState((prev) => ({ ...prev, pose: value }))}
+          onPoseChange={(value) =>
+            setUrlState((prev) => ({
+              ...prev,
+              pose: value,
+              autoplay: value === "static" ? prev.autoplay : true,
+            }))
+          }
           onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
           onBackgroundChange={setBackgroundMode}
           onBackgroundColorChange={setBackgroundColor}
