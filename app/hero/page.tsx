@@ -12,17 +12,41 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import Viewer3D, { type Viewer3DHandle } from "../../components/Viewer3D";
 import ViewerControls from "../../components/ViewerControls";
-import { HEROES } from "../../lib/heroes";
 import { type UrlState, parseUrlState, serializeUrlState } from "../../lib/urlState";
 import "./hero.css";
 
-const DEFAULT_MODEL_URL = "/assets/kez/kez_econ.fbx";
-const HERO_SELECTION = ["Kez", "Lion", "Brewmaster", "Doom", "Monkey King"] as const;
+const HERO_SELECTION = ["Kez", "Brewmaster", "Doom", "Monkey King"] as const;
 type HeroName = (typeof HERO_SELECTION)[number];
+
+const HERO_ASSETS: Record<
+  HeroName,
+  {
+    heroKey: string;
+    modelUrl: string;
+    materialsRoot?: string;
+    baseMaterialsRoot?: string;
+    materialsPrefix?: string;
+  }
+> = {
+  Kez: { heroKey: "kez", modelUrl: "/assets/kez/kez_econ.fbx" },
+  Brewmaster: {
+    heroKey: "brewmaster",
+    modelUrl: "/assets/brewmaster/brewmaster_econ.fbx",
+  },
+  Doom: {
+    heroKey: "doom",
+    modelUrl: "/assets/doom_bringer/doom_econ.fbx",
+    materialsRoot: "/assets/doom_bringer/materials/",
+    baseMaterialsRoot: "/assets/doom_bringer/materials/base/",
+  },
+  "Monkey King": {
+    heroKey: "monkey_king",
+    modelUrl: "/assets/monkey_king/monkey_king_econ.fbx",
+  },
+};
 
 const HERO_ACCENTS: Record<HeroName, { accent: string; accentStrong: string }> = {
   Kez: { accent: "#6ec6ff", accentStrong: "#b7e4ff" },
-  Lion: { accent: "#c7a9ff", accentStrong: "#eadfff" },
   Brewmaster: { accent: "#d6b068", accentStrong: "#f1d5a2" },
   Doom: { accent: "#d64545", accentStrong: "#ff7b7b" },
   "Monkey King": { accent: "#58c97a", accentStrong: "#b7f0c6" },
@@ -42,10 +66,6 @@ const HERO_LORE: Record<HeroName, { image?: string; text?: string }> = {
   Kez: {
     text:
       "I was born with a price on my head. As I got better at causing trouble, that price went up. Every time Queen Imperia raised the bounty, I knew I must have done something right. I think that's the worst part about being gone so long in Icewrack... I've got to get that price back up to a respectable number.",
-  },
-  Lion: {
-    text:
-      "Once a Grandmaster of the Demon Witch tradition of sorcery, Lion earned fame among his brethren for fighting on the side of light and righteousness. But adulation corrupts. With powers surpassed only by his ambition, the mage was seduced by a demon and turned to evil, trading his soul for prestige. After committing horrible crimes that marred his soul, he was abandoned. The demon betrayed him, striking better deals with his enemies. Such was Lion's rage that he followed the demon back to hell and slew it, ripping it limb from limb, taking its demonic hand for his own. However, such demonoplasty comes at a cost. Lion was transfigured by the process, his body transformed into something unrecognizable. He rose from hell, rage incarnate, slaying even those who had once called him master, and laying waste to the lands where he had once been so adored. He survives now as the sole practitioner of the Demon Witch tradition, and those who present themselves as acolytes or students are soon relieved of their mana and carried off by the faintest gust of wind.",
   },
   "Monkey King": {
     text:
@@ -107,7 +127,12 @@ export default function HeroPage() {
     HERO_SELECTION[0] ?? "Kez",
   );
   const [loreFontSize, setLoreFontSize] = useState<number>(LORE_FONT_MAX);
-  const modelUrl = DEFAULT_MODEL_URL;
+  const heroAsset = HERO_ASSETS[selectedHero] ?? HERO_ASSETS.Kez;
+  const modelUrl = heroAsset.modelUrl;
+  const materialsRoot = heroAsset.materialsRoot;
+  const baseMaterialsRoot = heroAsset.baseMaterialsRoot;
+  const heroKey = heroAsset.heroKey;
+  const materialsPrefix = heroAsset.materialsPrefix;
   const loreEntry = HERO_LORE[selectedHero];
   const loreText = loreEntry?.text ?? "";
   const loreImage = loreText ? null : loreEntry?.image ?? null;
@@ -341,6 +366,10 @@ export default function HeroPage() {
           <Viewer3D
             ref={viewerRef}
             modelUrl={modelUrl}
+            materialsRoot={materialsRoot}
+            baseMaterialsRoot={baseMaterialsRoot}
+            heroKey={heroKey}
+            materialsPrefix={materialsPrefix}
             activeAnimation={anim}
             pose={pose}
             autoplay={autoplay}

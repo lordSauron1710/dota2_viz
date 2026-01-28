@@ -97,12 +97,12 @@ function createSpotLight(
 export function createLightingPreset(preset: LightingPreset): LightingRig {
   switch (preset) {
     case "spotlight": {
-      const ambient = new THREE.AmbientLight(0xffffff, 0.55);
-      const hemi = new THREE.HemisphereLight(0xffffff, 0x1f1f1f, 0.65);
+      const ambient = new THREE.AmbientLight(0xffffff, 0.85);
+      const hemi = new THREE.HemisphereLight(0xffffff, 0x2a2a2a, 0.9);
 
       const key = createDirectionalLight(
         0xfaf7ff,
-        2.4,
+        3.4,
         new THREE.Vector3(6.5, 8.5, 5.5),
         true,
       );
@@ -111,14 +111,14 @@ export function createLightingPreset(preset: LightingPreset): LightingRig {
 
       const fill = createDirectionalLight(
         0xffe6c4,
-        1.35,
+        2.0,
         new THREE.Vector3(-3.5, 4.8, 5.2),
       );
       fill.target.userData.focusOffset = new THREE.Vector3(0, 1, -0.1);
 
       const rim = createDirectionalLight(
         0xcfe2ff,
-        1.1,
+        1.5,
         new THREE.Vector3(-6.5, 6.5, -5.5),
       );
       rim.target.userData.focusOffset = new THREE.Vector3(0, 1.05, -0.35);
@@ -134,8 +134,8 @@ export function createLightingPreset(preset: LightingPreset): LightingRig {
           rim.light,
           rim.target,
         ],
-        ssao: { kernelRadius: 2, minDistance: 0.001, maxDistance: 0.05 },
-        exposure: 2,
+        ssao: { kernelRadius: 1.2, minDistance: 0.001, maxDistance: 0.035 },
+        exposure: 2.8,
       };
     }
     case "neutral": {

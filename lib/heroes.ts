@@ -50,7 +50,6 @@ export const HEROES = [
   "Lich",
   "Lifestealer",
   "Lina",
-  "Lion",
   "Lone Druid",
   "Luna",
   "Lycan",

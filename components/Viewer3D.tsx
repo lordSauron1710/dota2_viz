@@ -29,7 +29,86 @@ type AssetRoots = {
   baseMaterialsRoot: string;
 };
 
+type TextureRootOverrides = {
+  materialsRoot?: string;
+  baseMaterialsRoot?: string;
+};
+
 const TEXTURE_EXTENSIONS = [".tga", ".png", ".jpg", ".jpeg", ".bmp", ".dds"];
+const HERO_FORCE_TEXTURES = new Set(["monkey_king"]);
+const HERO_PART_ALIASES: Record<
+  string,
+  Record<string, string[]>
+> = {
+  kez: {
+    armor: ["armor", "body", "torso"],
+    head: ["head", "face"],
+    hair: ["hair"],
+    rope: ["rope"],
+    pearl: ["pearl"],
+    sai: ["sai"],
+    shoulder: ["shoulder", "shoulders", "pad", "pads"],
+    tail: ["tail"],
+    weapon: ["weapon", "blade", "sword", "staff"],
+    weapon_handle: ["handle", "hilt"],
+    weapon_scabbard: ["scabbard", "sheath"],
+    weapon_smear_sai: ["smear"],
+    base: ["base"],
+  },
+  brewmaster: {
+    armor: ["armor", "body", "torso"],
+    back: ["back", "cape"],
+    barrel: ["barrel", "keg"],
+    bracers: ["bracer", "bracers", "wrist"],
+    weapon: ["weapon", "staff"],
+    base: ["base"],
+  },
+  doom: {
+    arms: ["arm", "arms"],
+    back: ["back", "cape"],
+    belt: ["belt", "waist"],
+    head: ["head", "horn", "face"],
+    shoulder: ["shoulder", "shoulders", "pad", "pads"],
+    tail: ["tail"],
+    weapon: ["weapon", "blade", "sword"],
+    base: ["base"],
+  },
+  monkey_king: {
+    armor: ["armor", "body", "torso"],
+    head: ["head", "face"],
+    shoulders: ["shoulder", "shoulders", "pad", "pads"],
+    weapon: ["weapon", "staff", "rod", "jingu", "bang"],
+    base: ["base"],
+  },
+};
+
+const HERO_DEFAULT_PART: Record<string, string> = {
+  kez: "base",
+  brewmaster: "base",
+  doom: "base",
+  monkey_king: "base",
+};
+
+const HERO_PREFIX: Record<string, string> = {};
+
+const HERO_MATERIAL_TUNING: Record<
+  string,
+  {
+    albedoBoost: number;
+    emissiveIntensity: number;
+    emissiveColor: number;
+    specular?: number;
+    shininess?: number;
+  }
+> = {
+  monkey_king: {
+    albedoBoost: 1.6,
+    emissiveIntensity: 0.45,
+    emissiveColor: 0xffffff,
+    specular: 0x9c9c9c,
+    shininess: 18,
+  },
+};
 
 type RigRestPose = {
   position: THREE.Vector3;
@@ -582,8 +661,370 @@ function resolveAssetRoots(modelUrl: string): AssetRoots | null {
   }
 }
 
-function createTextureUrlResolver(modelUrl: string) {
+function normalizeRootUrl(value: string) {
+  const resolved = new URL(value, window.location.href).toString();
+  return resolved.endsWith("/") ? resolved : `${resolved}/`;
+}
+
+function resolveTextureRoots(
+  modelUrl: string,
+  overrides?: TextureRootOverrides,
+): Pick<AssetRoots, "materialsRoot" | "baseMaterialsRoot"> | null {
+  const hasOverrides = Boolean(overrides?.materialsRoot || overrides?.baseMaterialsRoot);
+  if (hasOverrides) {
+    try {
+      const materialsRoot = overrides?.materialsRoot
+        ? normalizeRootUrl(overrides.materialsRoot)
+        : null;
+      const baseMaterialsRoot = overrides?.baseMaterialsRoot
+        ? normalizeRootUrl(overrides.baseMaterialsRoot)
+        : null;
+      const fallbackRoot = materialsRoot ?? baseMaterialsRoot;
+      if (fallbackRoot) {
+        return {
+          materialsRoot: materialsRoot ?? fallbackRoot,
+          baseMaterialsRoot: baseMaterialsRoot ?? fallbackRoot,
+        };
+      }
+    } catch {
+      // Fall back to resolving from the model URL.
+    }
+  }
+
   const roots = resolveAssetRoots(modelUrl);
+  if (!roots) {
+    return null;
+  }
+  return {
+    materialsRoot: roots.materialsRoot,
+    baseMaterialsRoot: roots.baseMaterialsRoot,
+  };
+}
+
+function remapValveTexturePath(value: string) {
+  if (value.toLowerCase().endsWith(".vtf")) {
+    return `${value.slice(0, -4)}.tga`;
+  }
+  return value;
+}
+
+function getTextureDimensions(texture: THREE.Texture) {
+  const image = texture.image as { width?: number; height?: number } | undefined;
+  if (!image) {
+    return null;
+  }
+  const width = typeof image.width === "number" ? image.width : 0;
+  const height = typeof image.height === "number" ? image.height : 0;
+  return { width, height };
+}
+
+function hasUsableTexture(texture: THREE.Texture | null | undefined) {
+  if (!texture) {
+    return false;
+  }
+  const dimensions = getTextureDimensions(texture);
+  if (!dimensions) {
+    return false;
+  }
+  return !(dimensions.width <= 2 && dimensions.height <= 2);
+}
+
+function loadTextureWithFallback(
+  url: string,
+  manager: THREE.LoadingManager,
+  cache: Map<string, THREE.Texture>,
+): Promise<THREE.Texture> {
+  const cached = cache.get(url);
+  if (cached) {
+    return Promise.resolve(cached);
+  }
+  return new Promise((resolve, reject) => {
+    const lower = url.toLowerCase();
+    const onLoad = (texture: THREE.Texture) => {
+      cache.set(url, texture);
+      resolve(texture);
+    };
+    if (lower.endsWith(".tga")) {
+      new TGALoader(manager).load(url, onLoad, undefined, reject);
+      return;
+    }
+    if (lower.endsWith(".dds")) {
+      new DDSLoader(manager).load(url, onLoad, undefined, reject);
+      return;
+    }
+    new THREE.TextureLoader(manager).load(url, onLoad, undefined, reject);
+  });
+}
+
+function resolveHeroPart(heroKey: string, hint: string) {
+  const aliases = HERO_PART_ALIASES[heroKey] ?? {};
+  const normalized = hint.toLowerCase();
+  for (const [part, keys] of Object.entries(aliases)) {
+    if (keys.some((key) => normalized.includes(key))) {
+      return part;
+    }
+  }
+  return HERO_DEFAULT_PART[heroKey] ?? "base";
+}
+
+function getHeroTextureCandidates(
+  heroKey: string,
+  part: string,
+  materialsRoot: string,
+  baseMaterialsRoot: string,
+  materialsPrefix: string,
+) {
+  const stem = `${heroKey}_${part}`;
+  const baseStem = `__${heroKey}_base`;
+  const prefix = materialsPrefix;
+  return {
+    color: [
+      `${materialsRoot}${prefix}${stem}_color.tga`,
+      `${materialsRoot}${prefix}${stem}_diffuse.tga`,
+    ],
+    normal: [`${materialsRoot}${prefix}${stem}_normal.tga`],
+    specular: [`${materialsRoot}${prefix}${stem}_specularMask.tga`],
+    metalness: [`${materialsRoot}${prefix}${stem}_metalnessMask.tga`],
+    emissive: [`${materialsRoot}${prefix}${stem}_selfIllumMask.tga`],
+    rim: [`${materialsRoot}${prefix}${stem}_rimMask.tga`],
+    baseColor: [`${baseMaterialsRoot}${baseStem}_color.tga`],
+    baseNormal: [`${baseMaterialsRoot}${baseStem}_normal.tga`],
+    baseSpecular: [`${baseMaterialsRoot}${baseStem}_specularMask.tga`],
+    baseMetalness: [`${baseMaterialsRoot}${baseStem}_metalnessMask.tga`],
+    baseEmissive: [`${baseMaterialsRoot}${baseStem}_selfIllumMask.tga`],
+    baseRim: [`${baseMaterialsRoot}${baseStem}_rimMask.tga`],
+  };
+}
+
+async function loadTextureWithFallbacks(
+  urls: string[],
+  manager: THREE.LoadingManager,
+  cache: Map<string, THREE.Texture>,
+) {
+  for (const url of urls) {
+    try {
+      const texture = await loadTextureWithFallback(url, manager, cache);
+      if (texture) {
+        return texture;
+      }
+    } catch {
+      // Try next candidate.
+    }
+  }
+  return null;
+}
+
+async function applyHeroMaterialFallbacks(
+  model: THREE.Object3D,
+  manager: THREE.LoadingManager,
+  heroKey?: string,
+  materialsRoot?: string,
+  baseMaterialsRoot?: string,
+  materialsPrefix?: string,
+) {
+  if (!heroKey) {
+    return;
+  }
+
+  const forceTextures = HERO_FORCE_TEXTURES.has(heroKey);
+  const root = normalizeRootUrl(
+    materialsRoot ?? `/assets/${heroKey}/materials/`,
+  );
+  const baseRoot = normalizeRootUrl(
+    baseMaterialsRoot ?? `${root}base/`,
+  );
+  const prefix = materialsPrefix ?? HERO_PREFIX[heroKey] ?? "";
+  const cache = new Map<string, THREE.Texture>();
+  const pending: Promise<void>[] = [];
+
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) {
+      return;
+    }
+    const materials = Array.isArray(child.material)
+      ? child.material
+      : [child.material];
+    materials.forEach((material) => {
+      if (!material) {
+        return;
+      }
+      const hint = `${child.name} ${material.name}`;
+      const part = resolveHeroPart(heroKey, hint);
+      const candidates = getHeroTextureCandidates(
+        heroKey,
+        part,
+        root,
+        baseRoot,
+        prefix,
+      );
+
+      const applyMap = async () => {
+        if (!forceTextures && hasUsableTexture(material.map)) {
+          return;
+        }
+        const texture =
+          (await loadTextureWithFallbacks(candidates.color, manager, cache)) ||
+          (await loadTextureWithFallbacks(candidates.baseColor, manager, cache));
+        if (!texture) {
+          return;
+        }
+        texture.colorSpace = THREE.SRGBColorSpace;
+        material.map = texture;
+        if ("color" in material && material.color) {
+          material.color.set(0xffffff);
+        }
+        material.needsUpdate = true;
+      };
+
+      const applyNormal = async () => {
+        if (!forceTextures && hasUsableTexture(material.normalMap)) {
+          return;
+        }
+        const texture =
+          (await loadTextureWithFallbacks(candidates.normal, manager, cache)) ||
+          (await loadTextureWithFallbacks(candidates.baseNormal, manager, cache));
+        if (!texture) {
+          return;
+        }
+        material.normalMap = texture;
+        material.needsUpdate = true;
+      };
+
+      const applySpecular = async () => {
+        if (!("specularMap" in material)) {
+          return;
+        }
+        if (
+          !forceTextures &&
+          hasUsableTexture((material as THREE.MeshPhongMaterial).specularMap)
+        ) {
+          return;
+        }
+        const texture =
+          (await loadTextureWithFallbacks(candidates.specular, manager, cache)) ||
+          (await loadTextureWithFallbacks(candidates.baseSpecular, manager, cache));
+        if (!texture) {
+          return;
+        }
+        (material as THREE.MeshPhongMaterial).specularMap = texture;
+        (material as THREE.MeshPhongMaterial).specular?.set(0xffffff);
+        material.needsUpdate = true;
+      };
+
+      const applyEmissive = async () => {
+        if (!("emissiveMap" in material)) {
+          return;
+        }
+        if (
+          !forceTextures &&
+          hasUsableTexture((material as THREE.MeshPhongMaterial).emissiveMap)
+        ) {
+          return;
+        }
+        const texture =
+          (await loadTextureWithFallbacks(candidates.emissive, manager, cache)) ||
+          (await loadTextureWithFallbacks(candidates.baseEmissive, manager, cache));
+        if (!texture) {
+          return;
+        }
+        texture.colorSpace = THREE.SRGBColorSpace;
+        (material as THREE.MeshPhongMaterial).emissiveMap = texture;
+        (material as THREE.MeshPhongMaterial).emissive?.set(0xffffff);
+        (material as THREE.MeshPhongMaterial).emissiveIntensity = 0.45;
+        material.needsUpdate = true;
+      };
+
+      const applyMetalness = async () => {
+        if (!("metalnessMap" in material)) {
+          return;
+        }
+        if (
+          !forceTextures &&
+          hasUsableTexture((material as THREE.MeshStandardMaterial).metalnessMap)
+        ) {
+          return;
+        }
+        const texture =
+          (await loadTextureWithFallbacks(candidates.metalness, manager, cache)) ||
+          (await loadTextureWithFallbacks(candidates.baseMetalness, manager, cache));
+        if (!texture) {
+          return;
+        }
+        (material as THREE.MeshStandardMaterial).metalnessMap = texture;
+        (material as THREE.MeshStandardMaterial).metalness = 0.6;
+        (material as THREE.MeshStandardMaterial).roughness = 0.55;
+        material.needsUpdate = true;
+      };
+
+      pending.push(
+        applyMap(),
+        applyNormal(),
+        applySpecular(),
+        applyEmissive(),
+        applyMetalness(),
+      );
+    });
+  });
+
+  await Promise.all(pending);
+  applyHeroMaterialTuning(model, heroKey);
+}
+
+function applyHeroMaterialTuning(model: THREE.Object3D, heroKey?: string) {
+  if (!heroKey) {
+    return;
+  }
+  const tuning = HERO_MATERIAL_TUNING[heroKey];
+  if (!tuning) {
+    return;
+  }
+
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) {
+      return;
+    }
+    const materials = Array.isArray(child.material)
+      ? child.material
+      : [child.material];
+    materials.forEach((material) => {
+      if (!material || material.userData?.heroTuned) {
+        return;
+      }
+      material.userData = {
+        ...material.userData,
+        heroTuned: true,
+      };
+
+      if ("color" in material && material.color) {
+        material.color.multiplyScalar(tuning.albedoBoost);
+      }
+      if ("emissive" in material && material.emissive) {
+        material.emissive.setHex(tuning.emissiveColor);
+        const currentIntensity =
+          "emissiveIntensity" in material ? material.emissiveIntensity ?? 0 : 0;
+        if ("emissiveIntensity" in material) {
+          material.emissiveIntensity = Math.max(
+            currentIntensity,
+            tuning.emissiveIntensity,
+          );
+        }
+      }
+      if ("specular" in material && tuning.specular !== undefined) {
+        (material as THREE.MeshPhongMaterial).specular.setHex(tuning.specular);
+      }
+      if ("shininess" in material && tuning.shininess !== undefined) {
+        (material as THREE.MeshPhongMaterial).shininess = Math.max(
+          (material as THREE.MeshPhongMaterial).shininess ?? 0,
+          tuning.shininess,
+        );
+      }
+      material.needsUpdate = true;
+    });
+  });
+}
+
+function createTextureUrlResolver(modelUrl: string, overrides?: TextureRootOverrides) {
+  const roots = resolveTextureRoots(modelUrl, overrides);
   if (!roots) {
     return null;
   }
@@ -596,18 +1037,19 @@ function createTextureUrlResolver(modelUrl: string) {
 
     const stripped = url.split("?")[0].split("#")[0];
     const normalized = stripped.replace(/\\/g, "/");
-    const lower = normalized.toLowerCase();
+    const remapped = remapValveTexturePath(normalized);
+    const lower = remapped.toLowerCase();
     const materialsIndex = lower.lastIndexOf("/materials/");
 
     if (materialsIndex !== -1) {
-      const relative = normalized.slice(materialsIndex + "/materials/".length);
+      const relative = remapped.slice(materialsIndex + "/materials/".length);
       if (relative.toLowerCase().startsWith("base/")) {
         return `${baseMaterialsRoot}${relative.slice("base/".length)}`;
       }
       return `${materialsRoot}${relative}`;
     }
 
-    const filename = normalized.substring(normalized.lastIndexOf("/") + 1);
+    const filename = remapped.substring(remapped.lastIndexOf("/") + 1);
     if (filename.startsWith("__")) {
       return `${baseMaterialsRoot}${filename}`;
     }
@@ -693,6 +1135,10 @@ function hexToRgbChannels(value: string) {
 
 type Viewer3DProps = {
   modelUrl: string;
+  materialsRoot?: string;
+  baseMaterialsRoot?: string;
+  heroKey?: string;
+  materialsPrefix?: string;
   activeAnimation: string | null;
   pose: PoseName;
   autoplay: boolean;
@@ -709,6 +1155,10 @@ type Viewer3DProps = {
 function Viewer3D(
   {
     modelUrl,
+    materialsRoot,
+    baseMaterialsRoot,
+    heroKey,
+    materialsPrefix,
     activeAnimation,
     pose,
     autoplay,
@@ -1091,7 +1541,10 @@ function Viewer3D(
       manager.addHandler(/\.tga$/i, new TGALoader(manager));
       manager.addHandler(/\.dds$/i, new DDSLoader(manager));
 
-      const urlResolver = createTextureUrlResolver(modelUrl);
+      const urlResolver = createTextureUrlResolver(modelUrl, {
+        materialsRoot,
+        baseMaterialsRoot,
+      });
       if (urlResolver) {
         manager.setURLModifier(urlResolver);
       }
@@ -1101,6 +1554,14 @@ function Viewer3D(
         modelUrl,
         (model) => {
           configureMaterials(model);
+          void applyHeroMaterialFallbacks(
+            model,
+            manager,
+            heroKey,
+            materialsRoot,
+            baseMaterialsRoot,
+            materialsPrefix,
+          );
           scene.add(model);
           modelRef.current = model;
           rigRef.current = buildRig(model);
@@ -1205,7 +1666,16 @@ function Viewer3D(
       composerRef.current = null;
       rigRef.current = null;
     };
-  }, [applyEnvironmentMode, modelUrl, onClipsLoaded, retryKey]);
+  }, [
+    applyEnvironmentMode,
+    baseMaterialsRoot,
+    heroKey,
+    materialsPrefix,
+    materialsRoot,
+    modelUrl,
+    onClipsLoaded,
+    retryKey,
+  ]);
 
   useEffect(() => {
     applyEnvironmentMode(environmentMode);
