@@ -12,11 +12,11 @@ An interactive Three.js + Next.js viewer for Dota 2 hero assets. The v2 UI is re
 
 ## UI snapshots
 
-Initial version:
+Initial state:
 
 ![DotA2 Hero Viewer UI (initial)](ui%20updates/kez_ui_1.png)
 
-Current UI:
+Current state:
 
 ![DotA2 Hero Viewer UI (current)](ui%20updates/kez_ui_3.png)
 
