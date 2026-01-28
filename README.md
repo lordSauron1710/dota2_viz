@@ -22,6 +22,17 @@ Make hero assets easy to browse, compare, and tune without external DCC tools. T
 - Texture resolution + fallbacks for Valve FBX + TGA layouts.
 - Optional local FBX loading via file picker.
 
+## Hero Selected
+
+Kez
+![Kez UI sample](assets/ui_samples/kez_ui.png)
+
+Doom
+![Doom UI sample](assets/ui_samples/doom_ui.png)
+
+Monkey King
+![Monkey King UI sample](assets/ui_samples/mk_ui.png)
+
 ## Tech stack
 
 - Next.js 14

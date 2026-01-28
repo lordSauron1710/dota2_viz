@@ -12,9 +12,9 @@ export type UrlState = {
 
 export const DEFAULT_URL_STATE: UrlState = {
   anim: null,
-  pose: "idle",
+  pose: "static",
   speed: 1,
-  autoplay: true,
+  autoplay: false,
 };
 
 function isPose(value: string | null): value is PoseName {
