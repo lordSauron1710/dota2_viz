@@ -13,6 +13,7 @@ const DEFAULT_MODEL_URL = "/assets/kez/kez_econ.fbx";
 function areUrlStatesEqual(a: UrlState, b: UrlState) {
   return (
     a.anim === b.anim &&
+    a.pose === b.pose &&
     a.speed === b.speed &&
     a.preset === b.preset &&
     a.autoplay === b.autoplay
@@ -23,6 +24,7 @@ export default function HeroPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const viewerRef = useRef<Viewer3DHandle | null>(null);
+  const lastSerializedRef = useRef<string | null>(null);
 
   const parsedState = useMemo(() => {
     return parseUrlState(new URLSearchParams(searchParams.toString()));
@@ -36,13 +38,19 @@ export default function HeroPage() {
   const modelUrl = DEFAULT_MODEL_URL;
 
   useEffect(() => {
-    if (!areUrlStatesEqual(urlState, parsedState)) {
-      setUrlState(parsedState);
+    const currentParams = searchParams.toString();
+    if (currentParams === lastSerializedRef.current) {
+      return;
     }
-  }, [parsedState, urlState]);
+    setUrlState((prev) => (areUrlStatesEqual(prev, parsedState) ? prev : parsedState));
+  }, [parsedState, searchParams]);
 
   useEffect(() => {
     const params = serializeUrlState(urlState).toString();
+    if (params === lastSerializedRef.current) {
+      return;
+    }
+    lastSerializedRef.current = params;
     router.replace(`/hero?${params}`);
   }, [router, urlState]);
 
@@ -75,7 +83,7 @@ export default function HeroPage() {
     setUrlState((prev) => ({ ...prev, autoplay: !prev.autoplay }));
   }, []);
 
-  const { anim, speed, preset, autoplay } = urlState;
+  const { anim, pose, speed, preset, autoplay } = urlState;
 
   return (
     <main className="hero-shell">
@@ -110,6 +118,7 @@ export default function HeroPage() {
             ref={viewerRef}
             modelUrl={modelUrl}
             activeAnimation={anim}
+            pose={pose}
             autoplay={autoplay}
             speed={speed}
             preset={preset}
@@ -121,6 +130,7 @@ export default function HeroPage() {
         </section>
 
         <ViewerControls
+          pose={pose}
           speed={speed}
           preset={preset}
           backgroundMode={backgroundMode}
@@ -128,6 +138,7 @@ export default function HeroPage() {
           onReset={handleResetCamera}
           onToggleAutoplay={handleToggleAutoplay}
           onScreenshot={() => viewerRef.current?.captureScreenshot()}
+          onPoseChange={(value) => setUrlState((prev) => ({ ...prev, pose: value }))}
           onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
           onPresetChange={(value) => setUrlState((prev) => ({ ...prev, preset: value }))}
           onBackgroundChange={setBackgroundMode}
