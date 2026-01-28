@@ -10,9 +10,15 @@ An interactive Three.js + Next.js viewer for Dota 2 hero assets. The v2 UI is re
 - Load local `.fbx` files at runtime.
 - Assets are served from the repo `assets/` directory (no more `public/assets`).
 
-## UI snapshot
+## UI snapshots
 
-![DotA2 Hero Viewer UI](ui%20updates/kez_ui_1.png)
+Initial version:
+
+![DotA2 Hero Viewer UI (initial)](ui%20updates/kez_ui_1.png)
+
+Current UI:
+
+![DotA2 Hero Viewer UI (current)](ui%20updates/kez_ui_3.png)
 
 ## Desired state (project direction)
 

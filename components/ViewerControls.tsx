@@ -1,17 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import type { LightingPreset } from "../lib/urlState";
 
 type ViewerControlsProps = {
-  animations: string[];
-  activeAnimation: string | null;
   speed: number;
   preset: LightingPreset;
   backgroundMode: "gradient" | "solid";
   autoplay: boolean;
   onReset: () => void;
   onToggleAutoplay: () => void;
-  onAnimationChange: (clip: string) => void;
+  onScreenshot?: () => void;
+  onPoseChange?: (pose: string) => void;
   onSpeedChange: (value: number) => void;
   onPresetChange: (preset: LightingPreset) => void;
   onBackgroundChange: (mode: "gradient" | "solid") => void;
@@ -56,21 +56,43 @@ function PlayIcon() {
   );
 }
 
+function ScreenshotIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M7 6h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 6l1.2-2h3.6L15 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
 export default function ViewerControls({
-  animations,
-  activeAnimation,
   speed,
   preset,
   backgroundMode,
   autoplay,
   onReset,
   onToggleAutoplay,
-  onAnimationChange,
+  onScreenshot,
+  onPoseChange,
   onSpeedChange,
   onPresetChange,
   onBackgroundChange,
 }: ViewerControlsProps) {
-  const hasAnimations = animations.length > 0;
+  const poseOptions = ["idle", "walking", "running", "stunned"];
+  const [selectedPose, setSelectedPose] = useState("idle");
 
   return (
     <aside className="panel panel--right">
@@ -90,6 +112,15 @@ export default function ViewerControls({
         </button>
         <button
           type="button"
+          className="icon-button"
+          onClick={onScreenshot}
+          aria-label="Screenshot"
+          title="Screenshot"
+        >
+          <ScreenshotIcon />
+        </button>
+        <button
+          type="button"
           className={`icon-button ${autoplay ? "is-active" : ""}`}
           onClick={onToggleAutoplay}
           aria-label={autoplay ? "Pause animation" : "Play animation"}
@@ -103,25 +134,24 @@ export default function ViewerControls({
 
       <div className="panel__header">
         <span>Animation</span>
-        <span className="panel__badge">
-          {hasAnimations ? `${animations.length} clips` : "No clips"}
-        </span>
       </div>
 
       <div className="panel__section">
-        <label htmlFor="animation-select">Clip</label>
+        <label htmlFor="animation-select">Pose</label>
         <select
           id="animation-select"
-          value={activeAnimation ?? ""}
-          onChange={(event) => onAnimationChange(event.target.value)}
-          disabled={!hasAnimations}
+          value={selectedPose}
+          onChange={(event) => {
+            const nextPose = event.target.value;
+            setSelectedPose(nextPose);
+            onPoseChange?.(nextPose);
+          }}
         >
-          {animations.map((clip) => (
-            <option key={clip} value={clip}>
-              {clip}
+          {poseOptions.map((pose) => (
+            <option key={pose} value={pose}>
+              {pose}
             </option>
           ))}
-          {!hasAnimations && <option value="">No animations found</option>}
         </select>
       </div>
 
@@ -169,6 +199,16 @@ export default function ViewerControls({
         >
           <option value="gradient">Gradient</option>
           <option value="solid">Solid</option>
+        </select>
+      </div>
+
+      <div className="panel__section">
+        <label htmlFor="environment-select">Environment</label>
+        <select id="environment-select" defaultValue="none">
+          <option value="none">None</option>
+          <option value="forest">Forest</option>
+          <option value="desert">Desert</option>
+          <option value="ruins">Ruins</option>
         </select>
       </div>
     </aside>

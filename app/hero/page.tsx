@@ -29,7 +29,6 @@ export default function HeroPage() {
   }, [searchParams]);
 
   const [urlState, setUrlState] = useState<UrlState>(parsedState);
-  const [animations, setAnimations] = useState<string[]>([]);
   const [backgroundMode, setBackgroundMode] = useState<"gradient" | "solid">("gradient");
   const [selectedHero, setSelectedHero] = useState<string>(
     HEROES.includes("Kez") ? "Kez" : HEROES[0] ?? "Kez",
@@ -48,7 +47,6 @@ export default function HeroPage() {
   }, [router, urlState]);
 
   const handleClipsLoaded = useCallback((clips: string[]) => {
-    setAnimations(clips);
     setUrlState((prev) => {
       if (clips.length > 0 && (!prev.anim || !clips.includes(prev.anim))) {
         return { ...prev, anim: clips[0] };
@@ -119,31 +117,18 @@ export default function HeroPage() {
             onClipsLoaded={handleClipsLoaded}
             onActiveClipChange={handleActiveClipChange}
           />
-          <div className="viewer-hud">
-            <div>
-              <span className="hud-label">Hero</span>
-              <strong>{selectedHero}</strong>
-            </div>
-            <div>
-              <span className="hud-label">Clip</span>
-              <strong>{anim ?? "None"}</strong>
-            </div>
-          </div>
         </section>
 
-          <ViewerControls
-            animations={animations}
-            activeAnimation={anim}
-            speed={speed}
-            preset={preset}
-            backgroundMode={backgroundMode}
-            autoplay={autoplay}
-            onReset={handleResetCamera}
-            onToggleAutoplay={handleToggleAutoplay}
-            onAnimationChange={(clip) => setUrlState((prev) => ({ ...prev, anim: clip }))}
-            onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
-            onPresetChange={(value) => setUrlState((prev) => ({ ...prev, preset: value }))}
-            onBackgroundChange={setBackgroundMode}
+        <ViewerControls
+          speed={speed}
+          preset={preset}
+          backgroundMode={backgroundMode}
+          autoplay={autoplay}
+          onReset={handleResetCamera}
+          onToggleAutoplay={handleToggleAutoplay}
+          onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
+          onPresetChange={(value) => setUrlState((prev) => ({ ...prev, preset: value }))}
+          onBackgroundChange={setBackgroundMode}
         />
       </div>
     </main>
