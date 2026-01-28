@@ -10,6 +10,18 @@ An interactive Three.js + Next.js viewer for Dota 2 hero assets. The v2 UI is re
 - Load local `.fbx` files at runtime.
 - Assets are served from the repo `assets/` directory (no more `public/assets`).
 
+## Desired state (project direction)
+
+Kez is a placeholder hero. The intended end state is a viewer that can import any hero by fetching the correct assets from the official Dota 2 workshop requirements pages.
+
+Planned direction:
+- Auto-discover available heroes from the workshop requirements index.
+- Fetch the hero-specific asset pack (FBX + textures) on demand.
+- Cache downloaded assets locally under `assets/<hero>/`.
+- Keep the hero list in the UI in sync with the available workshop data.
+
+For now, assets are still placed manually under `assets/<hero>/`, and the UI uses Kez as the default.
+
 ## Tech stack
 
 - Next.js `^14.2.35`
@@ -99,8 +111,8 @@ Then open `http://localhost:8000`.
 
 ## Asset source
 
-The Kez asset pack originates from:
+Hero assets come from the Dota 2 workshop requirements pages (Kez is the current example):
 
 ```
-https://www.dota2.com/workshop/requirements/kez
+https://www.dota2.com/workshop/requirements/
 ```
