@@ -31,6 +31,8 @@ export default function HeroPage() {
 
   const [urlState, setUrlState] = useState<UrlState>(parsedState);
   const [backgroundMode, setBackgroundMode] = useState<"gradient" | "solid">("gradient");
+  const [backgroundColor, setBackgroundColor] = useState("#0b0b0b");
+  const [environmentMode, setEnvironmentMode] = useState<"none" | "sky">("none");
   const [selectedHero, setSelectedHero] = useState<string>(
     HEROES.includes("Kez") ? "Kez" : HEROES[0] ?? "Kez",
   );
@@ -123,6 +125,8 @@ export default function HeroPage() {
             speed={speed}
             preset={lightingPreset}
             backgroundMode={backgroundMode}
+            backgroundColor={backgroundColor}
+            environmentMode={environmentMode}
             screenshotLabel={selectedHero}
             onClipsLoaded={handleClipsLoaded}
             onActiveClipChange={handleActiveClipChange}
@@ -133,6 +137,8 @@ export default function HeroPage() {
           pose={pose}
           speed={speed}
           backgroundMode={backgroundMode}
+          backgroundColor={backgroundColor}
+          environmentMode={environmentMode}
           autoplay={autoplay}
           onReset={handleResetCamera}
           onToggleAutoplay={handleToggleAutoplay}
@@ -140,6 +146,8 @@ export default function HeroPage() {
           onPoseChange={(value) => setUrlState((prev) => ({ ...prev, pose: value }))}
           onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
           onBackgroundChange={setBackgroundMode}
+          onBackgroundColorChange={setBackgroundColor}
+          onEnvironmentChange={setEnvironmentMode}
         />
       </div>
     </main>

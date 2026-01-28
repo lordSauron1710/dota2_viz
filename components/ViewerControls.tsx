@@ -7,6 +7,8 @@ type ViewerControlsProps = {
   pose: PoseName;
   speed: number;
   backgroundMode: "gradient" | "solid";
+  backgroundColor: string;
+  environmentMode: "none" | "sky";
   autoplay: boolean;
   onReset: () => void;
   onToggleAutoplay: () => void;
@@ -14,6 +16,8 @@ type ViewerControlsProps = {
   onPoseChange: (pose: PoseName) => void;
   onSpeedChange: (value: number) => void;
   onBackgroundChange: (mode: "gradient" | "solid") => void;
+  onBackgroundColorChange: (value: string) => void;
+  onEnvironmentChange: (mode: "none" | "sky") => void;
 };
 
 function ResetIcon() {
@@ -81,6 +85,8 @@ export default function ViewerControls({
   pose,
   speed,
   backgroundMode,
+  backgroundColor,
+  environmentMode,
   autoplay,
   onReset,
   onToggleAutoplay,
@@ -88,6 +94,8 @@ export default function ViewerControls({
   onPoseChange,
   onSpeedChange,
   onBackgroundChange,
+  onBackgroundColorChange,
+  onEnvironmentChange,
 }: ViewerControlsProps) {
   return (
     <aside className="panel panel--right">
@@ -181,15 +189,31 @@ export default function ViewerControls({
           <option value="gradient">Gradient</option>
           <option value="solid">Solid</option>
         </select>
+        {backgroundMode !== "solid" && backgroundMode !== "gradient" ? null : (
+          <>
+            <label htmlFor="background-color">Backdrop color</label>
+            <div className="color-row">
+              <input
+                id="background-color"
+                type="color"
+                value={backgroundColor}
+                onChange={(event) => onBackgroundColorChange(event.target.value)}
+              />
+              <span>{backgroundColor.toUpperCase()}</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="panel__section">
         <label htmlFor="environment-select">Environment</label>
-        <select id="environment-select" defaultValue="none">
+        <select
+          id="environment-select"
+          value={environmentMode}
+          onChange={(event) => onEnvironmentChange(event.target.value as "none" | "sky")}
+        >
           <option value="none">None</option>
-          <option value="forest">Forest</option>
-          <option value="desert">Desert</option>
-          <option value="ruins">Ruins</option>
+          <option value="sky">Sky</option>
         </select>
       </div>
     </aside>

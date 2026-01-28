@@ -2,10 +2,12 @@
 
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useRef,
   useState,
+  type CSSProperties,
   type Ref,
 } from "react";
 import * as THREE from "three";
@@ -13,6 +15,7 @@ import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { DDSLoader } from "three/examples/jsm/loaders/DDSLoader.js";
 import { TGALoader } from "three/examples/jsm/loaders/TGALoader.js";
+import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
@@ -657,6 +660,36 @@ export type Viewer3DHandle = {
   captureScreenshot: () => void;
 };
 
+const SKY_EXR_URL = "/env_assets/citrus_orchard_road_puresky_4k.exr";
+
+type BackgroundMode = "gradient" | "solid";
+type EnvironmentMode = "none" | "sky";
+
+const DEFAULT_BG_COLOR = "#0b0b0b";
+
+function hexToRgbChannels(value: string) {
+  const hex = value.trim().replace(/^#/, "");
+  if (hex.length === 3) {
+    const r = parseInt(hex[0] + hex[0], 16);
+    const g = parseInt(hex[1] + hex[1], 16);
+    const b = parseInt(hex[2] + hex[2], 16);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+      return null;
+    }
+    return `${r}, ${g}, ${b}`;
+  }
+  if (hex.length === 6) {
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) {
+      return null;
+    }
+    return `${r}, ${g}, ${b}`;
+  }
+  return null;
+}
+
 type Viewer3DProps = {
   modelUrl: string;
   activeAnimation: string | null;
@@ -664,7 +697,9 @@ type Viewer3DProps = {
   autoplay: boolean;
   speed: number;
   preset: LightingPreset;
-  backgroundMode: "gradient" | "solid";
+  backgroundMode: BackgroundMode;
+  backgroundColor: string;
+  environmentMode: EnvironmentMode;
   screenshotLabel?: string;
   onClipsLoaded: (clips: string[]) => void;
   onActiveClipChange: (clip: string | null) => void;
@@ -679,6 +714,8 @@ function Viewer3D(
     speed,
     preset,
     backgroundMode,
+    backgroundColor,
+    environmentMode,
     screenshotLabel,
     onClipsLoaded,
     onActiveClipChange,
@@ -705,6 +742,9 @@ function Viewer3D(
   const composerRef = useRef<EffectComposer | null>(null);
   const ssaoPassRef = useRef<SSAOPass | null>(null);
   const rigRef = useRef<Rig | null>(null);
+  const pmremGeneratorRef = useRef<THREE.PMREMGenerator | null>(null);
+  const skyEnvMapRef = useRef<THREE.WebGLRenderTarget | null>(null);
+  const environmentRequestRef = useRef(0);
   const poseStateRef = useRef<PoseState>({
     from: pose,
     to: pose,
@@ -713,6 +753,68 @@ function Viewer3D(
   });
   const autoplayRef = useRef(autoplay);
   const speedRef = useRef(speed);
+
+  const ensureSkyEnvironment = useCallback(async () => {
+    const scene = sceneRef.current;
+    const renderer = rendererRef.current;
+    if (!scene || !renderer) {
+      return;
+    }
+
+    if (!pmremGeneratorRef.current) {
+      pmremGeneratorRef.current = new THREE.PMREMGenerator(renderer);
+    }
+
+    if (skyEnvMapRef.current) {
+      scene.environment = skyEnvMapRef.current.texture;
+      scene.background = skyEnvMapRef.current.texture;
+      return;
+    }
+
+    const requestId = (environmentRequestRef.current += 1);
+
+    try {
+      const texture = await new EXRLoader().loadAsync(SKY_EXR_URL);
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.colorSpace = THREE.LinearSRGBColorSpace;
+
+      const envMap = pmremGeneratorRef.current.fromEquirectangular(texture);
+      texture.dispose();
+
+      if (requestId !== environmentRequestRef.current) {
+        envMap.dispose();
+        return;
+      }
+
+      if (skyEnvMapRef.current) {
+        skyEnvMapRef.current.dispose();
+      }
+      skyEnvMapRef.current = envMap;
+      scene.environment = envMap.texture;
+      scene.background = envMap.texture;
+    } catch (error) {
+      console.warn("Failed to load sky environment.", error);
+    }
+  }, []);
+
+  const applyEnvironmentMode = useCallback(
+    (mode: EnvironmentMode) => {
+      const scene = sceneRef.current;
+      if (!scene) {
+        return;
+      }
+
+      if (mode === "sky") {
+        void ensureSkyEnvironment();
+        return;
+      }
+
+      environmentRequestRef.current += 1;
+      scene.environment = null;
+      scene.background = null;
+    },
+    [ensureSkyEnvironment],
+  );
 
   const captureScreenshot = () => {
     const renderer = rendererRef.current;
@@ -918,6 +1020,7 @@ function Viewer3D(
       }
     };
     applyLights(preset);
+    applyEnvironmentMode(environmentMode);
 
     const clock = new THREE.Clock();
     let rafId = 0;
@@ -1061,6 +1164,14 @@ function Viewer3D(
         });
       }
       scene.clear();
+      if (skyEnvMapRef.current) {
+        skyEnvMapRef.current.dispose();
+        skyEnvMapRef.current = null;
+      }
+      if (pmremGeneratorRef.current) {
+        pmremGeneratorRef.current.dispose();
+        pmremGeneratorRef.current = null;
+      }
       mixerRef.current = null;
       actionsRef.current = {};
       currentActionRef.current = null;
@@ -1074,7 +1185,11 @@ function Viewer3D(
       composerRef.current = null;
       rigRef.current = null;
     };
-  }, [modelUrl, onClipsLoaded, retryKey]);
+  }, [applyEnvironmentMode, modelUrl, onClipsLoaded, retryKey]);
+
+  useEffect(() => {
+    applyEnvironmentMode(environmentMode);
+  }, [applyEnvironmentMode, environmentMode]);
 
   useEffect(() => {
     const lightsGroup = lightsGroupRef.current;
@@ -1166,7 +1281,16 @@ function Viewer3D(
   return (
     <div
       ref={containerRef}
-      className={`viewer ${backgroundMode === "gradient" ? "viewer--gradient" : "viewer--solid"}`}
+      className={`viewer ${
+        backgroundMode === "gradient" ? "viewer--gradient" : "viewer--solid"
+      }`}
+      style={
+        {
+          "--viewer-solid": backgroundColor,
+          "--viewer-gradient-rgb":
+            hexToRgbChannels(backgroundColor) ?? hexToRgbChannels(DEFAULT_BG_COLOR),
+        } as CSSProperties
+      }
     >
       <canvas ref={canvasRef} />
       {isLoading && (
