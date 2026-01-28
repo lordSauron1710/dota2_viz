@@ -1,12 +1,11 @@
 "use client";
 
-import type { LightingPreset, PoseName } from "../lib/urlState";
+import type { PoseName } from "../lib/urlState";
 import { POSE_OPTIONS } from "../lib/urlState";
 
 type ViewerControlsProps = {
   pose: PoseName;
   speed: number;
-  preset: LightingPreset;
   backgroundMode: "gradient" | "solid";
   autoplay: boolean;
   onReset: () => void;
@@ -14,7 +13,6 @@ type ViewerControlsProps = {
   onScreenshot?: () => void;
   onPoseChange: (pose: PoseName) => void;
   onSpeedChange: (value: number) => void;
-  onPresetChange: (preset: LightingPreset) => void;
   onBackgroundChange: (mode: "gradient" | "solid") => void;
 };
 
@@ -82,7 +80,6 @@ function ScreenshotIcon() {
 export default function ViewerControls({
   pose,
   speed,
-  preset,
   backgroundMode,
   autoplay,
   onReset,
@@ -90,7 +87,6 @@ export default function ViewerControls({
   onScreenshot,
   onPoseChange,
   onSpeedChange,
-  onPresetChange,
   onBackgroundChange,
 }: ViewerControlsProps) {
   return (
@@ -173,20 +169,6 @@ export default function ViewerControls({
 
       <div className="panel__header">
         <span>Scene</span>
-      </div>
-
-      <div className="panel__section">
-        <label htmlFor="lighting-select">Lighting</label>
-        <select
-          id="lighting-select"
-          value={preset}
-          onChange={(event) => onPresetChange(event.target.value as LightingPreset)}
-        >
-          <option value="studio">Studio</option>
-          <option value="neutral">Neutral</option>
-          <option value="dim">Dim</option>
-          <option value="rim">Rim</option>
-        </select>
       </div>
 
       <div className="panel__section">

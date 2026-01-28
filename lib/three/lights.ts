@@ -96,103 +96,125 @@ function createSpotLight(
 
 export function createLightingPreset(preset: LightingPreset): LightingRig {
   switch (preset) {
+    case "spotlight": {
+      const ambient = new THREE.AmbientLight(0xffffff, 0.55);
+      const hemi = new THREE.HemisphereLight(0xffffff, 0x1f1f1f, 0.65);
+
+      const key = createDirectionalLight(
+        0xfaf7ff,
+        2.4,
+        new THREE.Vector3(6.5, 8.5, 5.5),
+        true,
+      );
+      key.light.shadow.radius = 2;
+      key.target.userData.focusOffset = new THREE.Vector3(0, 1.2, 0.15);
+
+      const fill = createDirectionalLight(
+        0xffe6c4,
+        1.35,
+        new THREE.Vector3(-3.5, 4.8, 5.2),
+      );
+      fill.target.userData.focusOffset = new THREE.Vector3(0, 1, -0.1);
+
+      const rim = createDirectionalLight(
+        0xcfe2ff,
+        1.1,
+        new THREE.Vector3(-6.5, 6.5, -5.5),
+      );
+      rim.target.userData.focusOffset = new THREE.Vector3(0, 1.05, -0.35);
+
+      return {
+        objects: [
+          ambient,
+          hemi,
+          key.light,
+          key.target,
+          fill.light,
+          fill.target,
+          rim.light,
+          rim.target,
+        ],
+        ssao: { kernelRadius: 2, minDistance: 0.001, maxDistance: 0.05 },
+        exposure: 2,
+      };
+    }
     case "neutral": {
-      const ambient = new THREE.AmbientLight(0xffffff, 0.32);
+      const ambient = new THREE.AmbientLight(0xffffff, 0.22);
       const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a1a, 0.2);
       const key = createSpotLight(
         0xffffff,
-        1.05,
+        0.85,
         new THREE.Vector3(4.5, 6, 4.5),
         Math.PI / 5,
         0.35,
         true,
       );
+      key.light.decay = 1.4;
+      key.light.distance = 25;
+      key.light.shadow.radius = 1.5;
+      key.target.userData.focusOffset = new THREE.Vector3(0, 1, 0.1);
       const fill = createDirectionalLight(
         0xffffff,
-        0.35,
+        0.25,
         new THREE.Vector3(-4, 3, 3),
       );
+      fill.target.userData.focusOffset = new THREE.Vector3(0, 1, -0.1);
       return {
         objects: [ambient, hemi, key.light, key.target, fill.light, fill.target],
-        ssao: { kernelRadius: 6, minDistance: 0.002, maxDistance: 0.1 },
-        exposure: 1,
+        ssao: { kernelRadius: 7, minDistance: 0.002, maxDistance: 0.12 },
+        exposure: 0.95,
       };
     }
     case "dim": {
-      const ambient = new THREE.AmbientLight(0xffffff, 0.18);
+      const ambient = new THREE.AmbientLight(0xffffff, 0.1);
       const key = createSpotLight(
         0xfff2d6,
-        0.75,
+        0.5,
         new THREE.Vector3(3.5, 5.2, 5.5),
         Math.PI / 7,
         0.5,
         true,
       );
+      key.light.decay = 1.3;
+      key.light.distance = 22;
+      key.light.shadow.radius = 1.5;
+      key.target.userData.focusOffset = new THREE.Vector3(0, 1, 0.2);
       const rim = createDirectionalLight(
         0x9fb4ff,
-        0.35,
+        0.22,
         new THREE.Vector3(-5, 3.5, -4),
       );
       return {
         objects: [ambient, key.light, key.target, rim.light, rim.target],
-        ssao: { kernelRadius: 9, minDistance: 0.002, maxDistance: 0.14 },
-        exposure: 0.85,
+        ssao: { kernelRadius: 12, minDistance: 0.003, maxDistance: 0.16 },
+        exposure: 0.7,
       };
     }
-    case "rim": {
-      const ambient = new THREE.AmbientLight(0xffffff, 0.2);
-      const key = createSpotLight(
-        0xffffff,
-        0.9,
-        new THREE.Vector3(3.5, 5.5, 3.5),
-        Math.PI / 6,
-        0.3,
-        true,
-      );
-      const rim = createDirectionalLight(
-        0x87a6ff,
-        1.1,
-        new THREE.Vector3(-5.5, 3.5, -4),
-      );
-      return {
-        objects: [ambient, key.light, key.target, rim.light, rim.target],
-        ssao: { kernelRadius: 7, minDistance: 0.002, maxDistance: 0.12 },
-        exposure: 0.95,
-      };
-    }
-    case "studio":
     default: {
-      const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+      const ambient = new THREE.AmbientLight(0xffffff, 0.22);
+      const hemi = new THREE.HemisphereLight(0xffffff, 0x1a1a1a, 0.2);
       const key = createSpotLight(
         0xffffff,
-        1.3,
-        new THREE.Vector3(5, 7, 4.5),
+        0.85,
+        new THREE.Vector3(4.5, 6, 4.5),
         Math.PI / 5,
-        0.3,
+        0.35,
         true,
       );
+      key.light.decay = 1.4;
+      key.light.distance = 25;
+      key.light.shadow.radius = 1.5;
+      key.target.userData.focusOffset = new THREE.Vector3(0, 1, 0.1);
       const fill = createDirectionalLight(
         0xffffff,
-        0.45,
-        new THREE.Vector3(-4.5, 4, 3.5),
+        0.25,
+        new THREE.Vector3(-4, 3, 3),
       );
-      const back = createDirectionalLight(
-        0xbcd1ff,
-        0.6,
-        new THREE.Vector3(-5, 3.5, -2.5),
-      );
+      fill.target.userData.focusOffset = new THREE.Vector3(0, 1, -0.1);
       return {
-        objects: [
-          ambient,
-          key.light,
-          key.target,
-          fill.light,
-          fill.target,
-          back.light,
-          back.target,
-        ],
-        ssao: { kernelRadius: 8, minDistance: 0.002, maxDistance: 0.12 },
-        exposure: 1.05,
+        objects: [ambient, hemi, key.light, key.target, fill.light, fill.target],
+        ssao: { kernelRadius: 7, minDistance: 0.002, maxDistance: 0.12 },
+        exposure: 0.95,
       };
     }
   }

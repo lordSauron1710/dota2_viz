@@ -15,7 +15,6 @@ function areUrlStatesEqual(a: UrlState, b: UrlState) {
     a.anim === b.anim &&
     a.pose === b.pose &&
     a.speed === b.speed &&
-    a.preset === b.preset &&
     a.autoplay === b.autoplay
   );
 }
@@ -83,7 +82,8 @@ export default function HeroPage() {
     setUrlState((prev) => ({ ...prev, autoplay: !prev.autoplay }));
   }, []);
 
-  const { anim, pose, speed, preset, autoplay } = urlState;
+  const { anim, pose, speed, autoplay } = urlState;
+  const lightingPreset = "spotlight";
 
   return (
     <main className="hero-shell">
@@ -121,7 +121,7 @@ export default function HeroPage() {
             pose={pose}
             autoplay={autoplay}
             speed={speed}
-            preset={preset}
+            preset={lightingPreset}
             backgroundMode={backgroundMode}
             screenshotLabel={selectedHero}
             onClipsLoaded={handleClipsLoaded}
@@ -132,7 +132,6 @@ export default function HeroPage() {
         <ViewerControls
           pose={pose}
           speed={speed}
-          preset={preset}
           backgroundMode={backgroundMode}
           autoplay={autoplay}
           onReset={handleResetCamera}
@@ -140,7 +139,6 @@ export default function HeroPage() {
           onScreenshot={() => viewerRef.current?.captureScreenshot()}
           onPoseChange={(value) => setUrlState((prev) => ({ ...prev, pose: value }))}
           onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
-          onPresetChange={(value) => setUrlState((prev) => ({ ...prev, preset: value }))}
           onBackgroundChange={setBackgroundMode}
         />
       </div>
