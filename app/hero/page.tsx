@@ -114,6 +114,7 @@ export default function HeroPage() {
             speed={speed}
             preset={preset}
             backgroundMode={backgroundMode}
+            screenshotLabel={selectedHero}
             onClipsLoaded={handleClipsLoaded}
             onActiveClipChange={handleActiveClipChange}
           />
@@ -126,6 +127,7 @@ export default function HeroPage() {
           autoplay={autoplay}
           onReset={handleResetCamera}
           onToggleAutoplay={handleToggleAutoplay}
+          onScreenshot={() => viewerRef.current?.captureScreenshot()}
           onSpeedChange={(value) => setUrlState((prev) => ({ ...prev, speed: value }))}
           onPresetChange={(value) => setUrlState((prev) => ({ ...prev, preset: value }))}
           onBackgroundChange={setBackgroundMode}

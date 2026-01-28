@@ -108,17 +108,6 @@ The viewer persists key settings in the `/hero` query string:
 - `preset=<studio|neutral|rim>`
 - `autoplay=1|0`
 
-## Legacy static viewer
-
-A static viewer remains in `index.html` + `app.js` for quick local testing.
-Serve the repo root with:
-
-```bash
-python3 -m http.server
-```
-
-Then open `http://localhost:8000`.
-
 ## Asset source
 
 Hero assets come from the Dota 2 workshop requirements pages (Kez is the current example):
