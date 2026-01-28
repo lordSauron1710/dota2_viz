@@ -10,7 +10,6 @@ export const HEROES = [
   "Beastmaster",
   "Bloodseeker",
   "Bounty Hunter",
-  "Brewmaster",
   "Bristleback",
   "Broodmother",
   "Centaur Warrunner",

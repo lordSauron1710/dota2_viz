@@ -36,6 +36,7 @@ type TextureRootOverrides = {
 
 const TEXTURE_EXTENSIONS = [".tga", ".png", ".jpg", ".jpeg", ".bmp", ".dds"];
 const HERO_FORCE_TEXTURES = new Set(["monkey_king"]);
+const HERO_TANGENT_FIX = new Set(["monkey_king"]);
 const HERO_PART_ALIASES: Record<
   string,
   Record<string, string[]>
@@ -53,14 +54,6 @@ const HERO_PART_ALIASES: Record<
     weapon_handle: ["handle", "hilt"],
     weapon_scabbard: ["scabbard", "sheath"],
     weapon_smear_sai: ["smear"],
-    base: ["base"],
-  },
-  brewmaster: {
-    armor: ["armor", "body", "torso"],
-    back: ["back", "cape"],
-    barrel: ["barrel", "keg"],
-    bracers: ["bracer", "bracers", "wrist"],
-    weapon: ["weapon", "staff"],
     base: ["base"],
   },
   doom: {
@@ -84,7 +77,6 @@ const HERO_PART_ALIASES: Record<
 
 const HERO_DEFAULT_PART: Record<string, string> = {
   kez: "base",
-  brewmaster: "base",
   doom: "base",
   monkey_king: "base",
 };
@@ -107,6 +99,21 @@ const HERO_MATERIAL_TUNING: Record<
     emissiveColor: 0xffffff,
     specular: 0x9c9c9c,
     shininess: 18,
+  },
+};
+
+const HERO_WEAPON_ALIGNMENT: Record<
+  string,
+  {
+    weaponBones?: string[];
+    handBones: string[];
+    meshHints: string[];
+  }
+> = {
+  monkey_king: {
+    weaponBones: ["weapon_base", "weapon"],
+    handBones: ["wrist_r", "hand_r"],
+    meshHints: ["weapon", "staff", "jingu", "bang"],
   },
 };
 
@@ -133,6 +140,16 @@ type Rig = {
   rest: Map<string, RigRestPose>;
   depth: Map<string, number>;
   groups: RigGroups;
+};
+
+type WeaponAttachment = {
+  heroKey: string;
+  handBone: THREE.Bone;
+  weaponBone?: THREE.Bone;
+  weaponMesh?: THREE.Mesh;
+  parent: THREE.Object3D;
+  meshCenter?: THREE.Vector3;
+  offset?: THREE.Vector3;
 };
 
 type PoseProfile = {
@@ -968,6 +985,7 @@ async function applyHeroMaterialFallbacks(
 
   await Promise.all(pending);
   applyHeroMaterialTuning(model, heroKey);
+  ensureHeroTangents(model, heroKey);
 }
 
 function applyHeroMaterialTuning(model: THREE.Object3D, heroKey?: string) {
@@ -1023,6 +1041,202 @@ function applyHeroMaterialTuning(model: THREE.Object3D, heroKey?: string) {
   });
 }
 
+function ensureHeroTangents(model: THREE.Object3D, heroKey?: string) {
+  if (!heroKey || !HERO_TANGENT_FIX.has(heroKey)) {
+    return;
+  }
+
+  model.traverse((child) => {
+    if (!(child instanceof THREE.Mesh)) {
+      return;
+    }
+    const materials = Array.isArray(child.material)
+      ? child.material
+      : [child.material];
+    const usesNormalMap = materials.some((material) => material?.normalMap);
+    if (!usesNormalMap) {
+      return;
+    }
+
+    const geometry = child.geometry as THREE.BufferGeometry | undefined;
+    if (!geometry) {
+      return;
+    }
+    if (geometry.userData?.tangentsComputed) {
+      return;
+    }
+    if (!geometry.attributes?.position || !geometry.attributes?.normal || !geometry.attributes?.uv) {
+      return;
+    }
+
+    if (!geometry.index) {
+      const vertexCount = geometry.attributes.position.count;
+      const indices = new Array<number>(vertexCount);
+      for (let i = 0; i < vertexCount; i += 1) {
+        indices[i] = i;
+      }
+      geometry.setIndex(indices);
+    }
+
+    try {
+      geometry.computeTangents();
+      geometry.userData = { ...geometry.userData, tangentsComputed: true };
+    } catch (error) {
+      console.warn("Failed to compute tangents for hero mesh.", error);
+    }
+  });
+}
+
+function findBoneByNames(model: THREE.Object3D, names: string[]) {
+  const normalized = names.map((name) => name.toLowerCase());
+  let result: THREE.Bone | null = null;
+  model.traverse((child) => {
+    if (result || !(child instanceof THREE.Bone)) {
+      return;
+    }
+    const name = child.name.toLowerCase();
+    if (normalized.some((candidate) => candidate === name)) {
+      result = child;
+    }
+  });
+  return result;
+}
+
+function findMeshByHints(model: THREE.Object3D, hints: string[]) {
+  const normalized = hints.map((hint) => hint.toLowerCase());
+  let result: THREE.Mesh | null = null;
+  model.traverse((child) => {
+    if (result || !(child instanceof THREE.Mesh)) {
+      return;
+    }
+    const name = child.name.toLowerCase();
+    if (normalized.some((hint) => name.includes(hint))) {
+      result = child;
+    }
+  });
+  return result;
+}
+
+function alignHeroWeapon(model: THREE.Object3D, heroKey?: string) {
+  if (!heroKey) {
+    return;
+  }
+  const config = HERO_WEAPON_ALIGNMENT[heroKey];
+  if (!config) {
+    return;
+  }
+  if (model.userData?.weaponAligned || model.userData?.weaponAttachment) {
+    return;
+  }
+
+  model.updateMatrixWorld(true);
+
+  const handBone = findBoneByNames(model, config.handBones);
+  if (!handBone) {
+    return;
+  }
+
+  const handPosition = new THREE.Vector3();
+  handBone.getWorldPosition(handPosition);
+
+  const weaponBone = config.weaponBones
+    ? findBoneByNames(model, config.weaponBones)
+    : null;
+
+  if (weaponBone) {
+    const weaponPosition = new THREE.Vector3();
+    weaponBone.getWorldPosition(weaponPosition);
+    const parent = weaponBone.parent;
+    if (parent) {
+      const localHand = handPosition.clone();
+      const localWeapon = weaponPosition.clone();
+      parent.worldToLocal(localHand);
+      parent.worldToLocal(localWeapon);
+      weaponBone.position.add(localHand.sub(localWeapon));
+      model.userData = {
+        ...model.userData,
+        weaponAttachment: {
+          heroKey,
+          handBone,
+          weaponBone,
+          parent,
+          offset: new THREE.Vector3(),
+        } satisfies WeaponAttachment,
+      };
+    } else {
+      weaponBone.position.add(handPosition.sub(weaponPosition));
+      model.userData = {
+        ...model.userData,
+        weaponAttachment: {
+          heroKey,
+          handBone,
+          weaponBone,
+          parent: model,
+          offset: new THREE.Vector3(),
+        } satisfies WeaponAttachment,
+      };
+    }
+    weaponBone.updateMatrixWorld(true);
+    model.userData = { ...model.userData, weaponAligned: true };
+    return;
+  }
+
+  const weaponMesh = findMeshByHints(model, config.meshHints);
+  if (!weaponMesh || weaponMesh.userData?.weaponAligned) {
+    return;
+  }
+
+  weaponMesh.geometry.computeBoundingBox();
+  const meshCenter = new THREE.Vector3();
+  weaponMesh.geometry.boundingBox?.getCenter(meshCenter);
+  const parent = weaponMesh.parent ?? model;
+  const localHand = handPosition.clone();
+  parent.worldToLocal(localHand);
+  weaponMesh.position.copy(localHand.sub(meshCenter));
+  weaponMesh.updateMatrixWorld(true);
+  weaponMesh.userData = { ...weaponMesh.userData, weaponAligned: true };
+  model.userData = {
+    ...model.userData,
+    weaponAligned: true,
+    weaponAttachment: {
+      heroKey,
+      handBone,
+      weaponMesh,
+      parent,
+      meshCenter,
+    } satisfies WeaponAttachment,
+  };
+}
+
+function updateHeroWeaponAttachment(model: THREE.Object3D, heroKey?: string) {
+  if (!heroKey) {
+    return;
+  }
+  const attachment = model.userData?.weaponAttachment as WeaponAttachment | undefined;
+  if (!attachment || attachment.heroKey !== heroKey) {
+    return;
+  }
+
+  const handPosition = new THREE.Vector3();
+  attachment.handBone.getWorldPosition(handPosition);
+
+  const parent = attachment.parent ?? model;
+  const localHand = handPosition.clone();
+  parent.worldToLocal(localHand);
+
+  if (attachment.weaponBone) {
+    const offset = attachment.offset ?? new THREE.Vector3();
+    attachment.weaponBone.position.copy(localHand.add(offset));
+    attachment.weaponBone.updateMatrixWorld(true);
+    return;
+  }
+
+  if (attachment.weaponMesh && attachment.meshCenter) {
+    attachment.weaponMesh.position.copy(localHand.sub(attachment.meshCenter));
+    attachment.weaponMesh.updateMatrixWorld(true);
+  }
+}
+
 function createTextureUrlResolver(modelUrl: string, overrides?: TextureRootOverrides) {
   const roots = resolveTextureRoots(modelUrl, overrides);
   if (!roots) {
@@ -1071,6 +1285,10 @@ function configureMaterials(object: THREE.Object3D) {
       return;
     }
 
+    const isBackfaceMesh =
+      child.name.toLowerCase().includes("backfaces") ||
+      child.name.toLowerCase().includes("_backface");
+
     if (child instanceof THREE.SkinnedMesh) {
       child.frustumCulled = false;
     }
@@ -1085,7 +1303,7 @@ function configureMaterials(object: THREE.Object3D) {
       if (!material) {
         return;
       }
-      material.side = THREE.DoubleSide;
+      material.side = isBackfaceMesh ? THREE.FrontSide : THREE.DoubleSide;
       if (material.map) {
         material.map.colorSpace = THREE.SRGBColorSpace;
       }
@@ -1520,6 +1738,9 @@ function Viewer3D(
           });
         }
       }
+      if (!currentActionRef.current && modelRef.current) {
+        updateHeroWeaponAttachment(modelRef.current, heroKey);
+      }
       controls.update();
       composer.render();
     };
@@ -1564,6 +1785,7 @@ function Viewer3D(
           );
           scene.add(model);
           modelRef.current = model;
+          alignHeroWeapon(model, heroKey);
           rigRef.current = buildRig(model);
           if (rigRef.current) {
             poseStateRef.current.time = 0;

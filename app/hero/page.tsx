@@ -15,7 +15,7 @@ import ViewerControls from "../../components/ViewerControls";
 import { type UrlState, parseUrlState, serializeUrlState } from "../../lib/urlState";
 import "./hero.css";
 
-const HERO_SELECTION = ["Kez", "Brewmaster", "Doom", "Monkey King"] as const;
+const HERO_SELECTION = ["Kez", "Doom", "Monkey King"] as const;
 type HeroName = (typeof HERO_SELECTION)[number];
 
 const HERO_ASSETS: Record<
@@ -29,10 +29,6 @@ const HERO_ASSETS: Record<
   }
 > = {
   Kez: { heroKey: "kez", modelUrl: "/assets/kez/kez_econ.fbx" },
-  Brewmaster: {
-    heroKey: "brewmaster",
-    modelUrl: "/assets/brewmaster/brewmaster_econ.fbx",
-  },
   Doom: {
     heroKey: "doom",
     modelUrl: "/assets/doom_bringer/doom_econ.fbx",
@@ -47,7 +43,6 @@ const HERO_ASSETS: Record<
 
 const HERO_ACCENTS: Record<HeroName, { accent: string; accentStrong: string }> = {
   Kez: { accent: "#6ec6ff", accentStrong: "#b7e4ff" },
-  Brewmaster: { accent: "#d6b068", accentStrong: "#f1d5a2" },
   Doom: { accent: "#d64545", accentStrong: "#ff7b7b" },
   "Monkey King": { accent: "#58c97a", accentStrong: "#b7f0c6" },
 };
@@ -55,10 +50,6 @@ const HERO_ACCENTS: Record<HeroName, { accent: string; accentStrong: string }> =
 const DEFAULT_ACCENT = HERO_ACCENTS.Kez;
 const DEFAULT_BACKDROP_COLOR = DEFAULT_ACCENT.accent;
 const HERO_LORE: Record<HeroName, { image?: string; text?: string }> = {
-  Brewmaster: {
-    text:
-      "Deep in the Wailing Mountains, in a valley beneath the Ruined City, the ancient Order of the Oyo has for centuries practiced its rites of holy reverie, communing with the spirit realm in grand festivals of drink. Born to a mother's flesh by a Celestial father, the youth known as Mangix was the first to grow up with the talents of both lineages. He trained with the greatest aesthetes of the Order, eventually earning, through diligent drunkenness, the right to challenge for the title of Brewmaster, that appellation most honored among the contemplative malt-brewing sect.\n\nAs much drinking competition as mortal combat, Mangix for nine days drank and fought the elder master. For nine nights they stumbled and whirled, chugged and struck, until at last the elder warrior collapsed into a drunken stupor, and a new Brewmaster was named. Now the new, young Brewmaster calls upon the strength of his Oyo forebears to speed his staff. When using magic, it is to his spirit ancestors that he turns. Like all Brewmasters before him, he was sent out from his people with a single mission. He wanders the land, striving toward enlightenment through drink, searching for the answer to the ancient spiritual schism. Hoping to think the single thought that will unite the spirit and physical planes again.",
-  },
   Doom: {
     text:
       "He that burns and is not consumed, devours and is never sated, kills and is beyond all judgment--Lucifer brings doom to all who would stand against him. Bearing away souls on the tip of a fiery sword, he is the Fallen One, a once-favored general from the realm behind the light, cast out for the sin of defiance: he would not kneel.\n\nSix times his name was tolled from the great bell of Vashundol. Six and sixty times his wings were branded, until only smoking stumps remained. Without wings, he slipped loose from the tethers that bound him within the light and he fell screaming to earth. A crater in the desert, Paradise lost. Now he attacks without mercy, without motive, the only living being able to move freely between the seven dark dominions. Lashed by inescapable needs, twisted by unimaginable talents, Doom carries his own hell with him wherever he goes. Defiant to the last. Eventually, the world will belong to Doom.",
