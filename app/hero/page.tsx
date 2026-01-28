@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Viewer3D, { type Viewer3DHandle } from "../../components/Viewer3D";
 import ViewerControls from "../../components/ViewerControls";
@@ -9,9 +17,20 @@ import { type UrlState, parseUrlState, serializeUrlState } from "../../lib/urlSt
 import "./hero.css";
 
 const DEFAULT_MODEL_URL = "/assets/kez/kez_econ.fbx";
-const DEFAULT_BACKDROP_COLOR = "#30180c";
 const HERO_SELECTION = ["Kez", "Lion", "Brewmaster", "Doom", "Monkey King"] as const;
-const HERO_LORE: Record<string, { image?: string; text?: string }> = {
+type HeroName = (typeof HERO_SELECTION)[number];
+
+const HERO_ACCENTS: Record<HeroName, { accent: string; accentStrong: string }> = {
+  Kez: { accent: "#6ec6ff", accentStrong: "#b7e4ff" },
+  Lion: { accent: "#c7a9ff", accentStrong: "#eadfff" },
+  Brewmaster: { accent: "#d6b068", accentStrong: "#f1d5a2" },
+  Doom: { accent: "#d64545", accentStrong: "#ff7b7b" },
+  "Monkey King": { accent: "#58c97a", accentStrong: "#b7f0c6" },
+};
+
+const DEFAULT_ACCENT = HERO_ACCENTS.Kez;
+const DEFAULT_BACKDROP_COLOR = DEFAULT_ACCENT.accent;
+const HERO_LORE: Record<HeroName, { image?: string; text?: string }> = {
   Brewmaster: {
     text:
       "Deep in the Wailing Mountains, in a valley beneath the Ruined City, the ancient Order of the Oyo has for centuries practiced its rites of holy reverie, communing with the spirit realm in grand festivals of drink. Born to a mother's flesh by a Celestial father, the youth known as Mangix was the first to grow up with the talents of both lineages. He trained with the greatest aesthetes of the Order, eventually earning, through diligent drunkenness, the right to challenge for the title of Brewmaster, that appellation most honored among the contemplative malt-brewing sect.\n\nAs much drinking competition as mortal combat, Mangix for nine days drank and fought the elder master. For nine nights they stumbled and whirled, chugged and struck, until at last the elder warrior collapsed into a drunken stupor, and a new Brewmaster was named. Now the new, young Brewmaster calls upon the strength of his Oyo forebears to speed his staff. When using magic, it is to his spirit ancestors that he turns. Like all Brewmasters before him, he was sent out from his people with a single mission. He wanders the land, striving toward enlightenment through drink, searching for the answer to the ancient spiritual schism. Hoping to think the single thought that will unite the spirit and physical planes again.",
@@ -38,6 +57,27 @@ const LORE_FALLBACK =
 const LORE_FONT_MIN = 9;
 const LORE_FONT_MAX = 16;
 
+function hexToRgbChannels(hex: string) {
+  const normalized = hex.replace("#", "").trim();
+
+  if (normalized.length === 3) {
+    const r = Number.parseInt(normalized[0] + normalized[0], 16);
+    const g = Number.parseInt(normalized[1] + normalized[1], 16);
+    const b = Number.parseInt(normalized[2] + normalized[2], 16);
+    return `${r}, ${g}, ${b}`;
+  }
+
+  if (normalized.length === 6) {
+    const value = Number.parseInt(normalized, 16);
+    const r = (value >> 16) & 255;
+    const g = (value >> 8) & 255;
+    const b = value & 255;
+    return `${r}, ${g}, ${b}`;
+  }
+
+  return "0, 0, 0";
+}
+
 function areUrlStatesEqual(a: UrlState, b: UrlState) {
   return (
     a.anim === b.anim &&
@@ -63,7 +103,7 @@ export default function HeroPage() {
   const [backgroundMode, setBackgroundMode] = useState<"gradient" | "solid">("gradient");
   const [backgroundColor, setBackgroundColor] = useState(DEFAULT_BACKDROP_COLOR);
   const [environmentMode, setEnvironmentMode] = useState<"none" | "sky">("none");
-  const [selectedHero, setSelectedHero] = useState<string>(
+  const [selectedHero, setSelectedHero] = useState<HeroName>(
     HERO_SELECTION[0] ?? "Kez",
   );
   const [loreFontSize, setLoreFontSize] = useState<number>(LORE_FONT_MAX);
@@ -73,6 +113,52 @@ export default function HeroPage() {
   const loreImage = loreText ? null : loreEntry?.image ?? null;
   const loreContent = loreText || (loreImage ? "" : LORE_FALLBACK);
   const showLoreImage = Boolean(loreImage);
+  const accentConfig = useMemo(
+    () => HERO_ACCENTS[selectedHero] ?? DEFAULT_ACCENT,
+    [selectedHero],
+  );
+  const accentStrong = accentConfig.accentStrong ?? accentConfig.accent;
+  const accentRgb = useMemo(
+    () => hexToRgbChannels(accentConfig.accent),
+    [accentConfig.accent],
+  );
+  const accentStrongRgb = useMemo(
+    () => hexToRgbChannels(accentStrong),
+    [accentStrong],
+  );
+  const accentStyle = useMemo(
+    () =>
+      ({
+        "--accent": accentConfig.accent,
+        "--accent-strong": accentStrong,
+        "--accent-rgb": accentRgb,
+        "--accent-strong-rgb": accentStrongRgb,
+      }) as CSSProperties,
+    [accentConfig.accent, accentRgb, accentStrong, accentStrongRgb],
+  );
+  const previousAccentRef = useRef(accentConfig.accent);
+
+  useEffect(() => {
+    if (backgroundColor === previousAccentRef.current) {
+      setBackgroundColor(accentConfig.accent);
+    }
+    previousAccentRef.current = accentConfig.accent;
+  }, [accentConfig.accent, backgroundColor]);
+
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty("--accent", accentConfig.accent);
+    root.style.setProperty("--accent-strong", accentStrong);
+    root.style.setProperty("--accent-rgb", accentRgb);
+    root.style.setProperty("--accent-strong-rgb", accentStrongRgb);
+
+    return () => {
+      root.style.removeProperty("--accent");
+      root.style.removeProperty("--accent-strong");
+      root.style.removeProperty("--accent-rgb");
+      root.style.removeProperty("--accent-strong-rgb");
+    };
+  }, [accentConfig.accent, accentRgb, accentStrong, accentStrongRgb]);
 
   useEffect(() => {
     const currentParams = searchParams.toString();
@@ -114,11 +200,12 @@ export default function HeroPage() {
 
   const handleResetCamera = useCallback(() => {
     viewerRef.current?.resetCamera();
-    setUrlState((prev) => ({ ...prev, pose: "static" }));
+    viewerRef.current?.resetPose("static");
+    setUrlState({ anim: null, pose: "static", speed: 1, autoplay: false });
     setBackgroundMode("gradient");
-    setBackgroundColor(DEFAULT_BACKDROP_COLOR);
+    setBackgroundColor(accentConfig.accent);
     setEnvironmentMode("none");
-  }, []);
+  }, [accentConfig.accent]);
 
   const handleToggleAutoplay = useCallback(() => {
     setUrlState((prev) => ({ ...prev, autoplay: !prev.autoplay }));
@@ -196,7 +283,7 @@ export default function HeroPage() {
   const lightingPreset = "spotlight";
 
   return (
-    <main className="hero-shell">
+    <main className="hero-shell" style={accentStyle}>
       <header className="topbar">
         <h1 className="topbar__title">DotA2 Hero Viewer</h1>
       </header>
@@ -212,7 +299,7 @@ export default function HeroPage() {
             <select
               id="hero-select"
               value={selectedHero}
-              onChange={(event) => setSelectedHero(event.target.value)}
+              onChange={(event) => setSelectedHero(event.target.value as HeroName)}
             >
               {HERO_SELECTION.map((hero) => (
                 <option key={hero} value={hero}>

@@ -657,6 +657,7 @@ function configureMaterials(object: THREE.Object3D) {
 
 export type Viewer3DHandle = {
   resetCamera: () => void;
+  resetPose: (pose?: PoseName) => void;
   captureScreenshot: () => void;
 };
 
@@ -753,6 +754,24 @@ function Viewer3D(
   });
   const autoplayRef = useRef(autoplay);
   const speedRef = useRef(speed);
+  const resetPose = useCallback(
+    (targetPose?: PoseName) => {
+      const nextPose = targetPose ?? pose;
+      const poseState = poseStateRef.current;
+      poseState.time = 0;
+      poseState.from = nextPose;
+      poseState.to = nextPose;
+      poseState.blend = 1;
+      autoplayRef.current = false;
+
+      if (mixerRef.current) {
+        mixerRef.current.stopAllAction();
+        mixerRef.current.setTime(0);
+      }
+      currentActionRef.current = null;
+    },
+    [pose],
+  );
 
   const ensureSkyEnvironment = useCallback(async () => {
     const scene = sceneRef.current;
@@ -870,6 +889,7 @@ function Viewer3D(
 
   useImperativeHandle(ref, () => ({
     resetCamera: () => resetRef.current(),
+    resetPose,
     captureScreenshot,
   }));
 
