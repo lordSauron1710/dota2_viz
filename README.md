@@ -1,4 +1,4 @@
-# DotA2 Hero Viewer (v2)
+# DotA2 Hero Viewer 
 
 An interactive Three.js + Next.js viewer for Dota 2 hero assets. The v2 UI is rebuilt from the ground up with a new three-panel layout, icon-based controls, and a hero picker + FBX loader.
 
@@ -126,3 +126,5 @@ Hero assets come from the Dota 2 workshop requirements pages (Kez is the current
 ```
 https://www.dota2.com/workshop/requirements/
 ```
+
+All Assets belong to Valve Corp. 
