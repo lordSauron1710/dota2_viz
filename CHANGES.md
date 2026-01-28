@@ -2,6 +2,7 @@
 
 This file lists project changes in chronological order based on the git commit history.
 
+- 2026-01-28 09:07:09 a2e1a35 feat: add sky HDR environment controls
 - 2026-01-28 08:19:51 7a3c8b0 docs: update changes log
 - 2026-01-28 08:18:10 ae476c6 Merge branch 'lighting-logic'
 - 2026-01-28 08:14:47 c04ddea Make lighting always bright
