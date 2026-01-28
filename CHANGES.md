@@ -2,6 +2,7 @@
 
 This file lists project changes in chronological order based on the git commit history.
 
+- 2026-01-28 10:03:03 e998589 feat: add hero lore sidebar and bios
 - 2026-01-28 09:23:14 2617cce ui: reset scene defaults + align playback button styling
 - 2026-01-28 09:07:09 a2e1a35 feat: add sky HDR environment controls
 - 2026-01-28 08:19:51 7a3c8b0 docs: update changes log
