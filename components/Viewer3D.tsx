@@ -34,7 +34,38 @@ type TextureRootOverrides = {
   baseMaterialsRoot?: string;
 };
 
+type RenderTier = {
+  maxPixelRatio: number;
+  ssaoScale: number;
+  idleFps: number;
+};
+
+const DEFAULT_RENDER_TIER: RenderTier = {
+  maxPixelRatio: 2,
+  ssaoScale: 1,
+  idleFps: 24,
+};
+
+function getRenderTier(): RenderTier {
+  if (typeof window === "undefined") {
+    return DEFAULT_RENDER_TIER;
+  }
+  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+  const cores = navigator.hardwareConcurrency ?? 8;
+  const minViewport = Math.min(window.innerWidth, window.innerHeight);
+  const isLowEnd = deviceMemory <= 4 || cores <= 4 || minViewport < 720;
+  if (!isLowEnd) {
+    return DEFAULT_RENDER_TIER;
+  }
+  return {
+    maxPixelRatio: 1.5,
+    ssaoScale: 0.75,
+    idleFps: 20,
+  };
+}
+
 const TEXTURE_EXTENSIONS = [".tga", ".png", ".jpg", ".jpeg", ".bmp", ".dds"];
+THREE.Cache.enabled = true;
 const HERO_FORCE_TEXTURES = new Set(["monkey_king"]);
 const HERO_TANGENT_FIX = new Set(["monkey_king"]);
 const HERO_PART_ALIASES: Record<
@@ -746,6 +777,38 @@ function hasUsableTexture(texture: THREE.Texture | null | undefined) {
   return !(dimensions.width <= 2 && dimensions.height <= 2);
 }
 
+function queueIdleWork(task: () => void, timeout = 1200) {
+  if (typeof window === "undefined") {
+    task();
+    return;
+  }
+  if ("requestIdleCallback" in window) {
+    (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number })
+      .requestIdleCallback(task, { timeout });
+    return;
+  }
+  window.setTimeout(task, 0);
+}
+
+async function runTaskQueue(tasks: Array<() => Promise<void>>, concurrency = 3) {
+  if (tasks.length === 0) {
+    return;
+  }
+  let index = 0;
+  const workers = new Array(Math.min(concurrency, tasks.length)).fill(0).map(async () => {
+    while (index < tasks.length) {
+      const task = tasks[index];
+      index += 1;
+      try {
+        await task();
+      } catch {
+        // Ignore failed texture attempts.
+      }
+    }
+  });
+  await Promise.all(workers);
+}
+
 function loadTextureWithFallback(
   url: string,
   manager: THREE.LoadingManager,
@@ -838,6 +901,7 @@ async function applyHeroMaterialFallbacks(
   materialsRoot?: string,
   baseMaterialsRoot?: string,
   materialsPrefix?: string,
+  isCancelled?: () => boolean,
 ) {
   if (!heroKey) {
     return;
@@ -853,6 +917,7 @@ async function applyHeroMaterialFallbacks(
   const prefix = materialsPrefix ?? HERO_PREFIX[heroKey] ?? "";
   const cache = new Map<string, THREE.Texture>();
   const pending: Promise<void>[] = [];
+  const deferred: Array<() => Promise<void>> = [];
 
   model.traverse((child) => {
     if (!(child instanceof THREE.Mesh)) {
@@ -876,6 +941,9 @@ async function applyHeroMaterialFallbacks(
       );
 
       const applyMap = async () => {
+        if (isCancelled?.()) {
+          return;
+        }
         if (!forceTextures && hasUsableTexture(material.map)) {
           return;
         }
@@ -883,6 +951,9 @@ async function applyHeroMaterialFallbacks(
           (await loadTextureWithFallbacks(candidates.color, manager, cache)) ||
           (await loadTextureWithFallbacks(candidates.baseColor, manager, cache));
         if (!texture) {
+          return;
+        }
+        if (isCancelled?.()) {
           return;
         }
         texture.colorSpace = THREE.SRGBColorSpace;
@@ -894,6 +965,9 @@ async function applyHeroMaterialFallbacks(
       };
 
       const applyNormal = async () => {
+        if (isCancelled?.()) {
+          return;
+        }
         if (!forceTextures && hasUsableTexture(material.normalMap)) {
           return;
         }
@@ -903,11 +977,17 @@ async function applyHeroMaterialFallbacks(
         if (!texture) {
           return;
         }
+        if (isCancelled?.()) {
+          return;
+        }
         material.normalMap = texture;
         material.needsUpdate = true;
       };
 
       const applySpecular = async () => {
+        if (isCancelled?.()) {
+          return;
+        }
         if (!("specularMap" in material)) {
           return;
         }
@@ -923,12 +1003,18 @@ async function applyHeroMaterialFallbacks(
         if (!texture) {
           return;
         }
+        if (isCancelled?.()) {
+          return;
+        }
         (material as THREE.MeshPhongMaterial).specularMap = texture;
         (material as THREE.MeshPhongMaterial).specular?.set(0xffffff);
         material.needsUpdate = true;
       };
 
       const applyEmissive = async () => {
+        if (isCancelled?.()) {
+          return;
+        }
         if (!("emissiveMap" in material)) {
           return;
         }
@@ -944,6 +1030,9 @@ async function applyHeroMaterialFallbacks(
         if (!texture) {
           return;
         }
+        if (isCancelled?.()) {
+          return;
+        }
         texture.colorSpace = THREE.SRGBColorSpace;
         (material as THREE.MeshPhongMaterial).emissiveMap = texture;
         (material as THREE.MeshPhongMaterial).emissive?.set(0xffffff);
@@ -952,6 +1041,9 @@ async function applyHeroMaterialFallbacks(
       };
 
       const applyMetalness = async () => {
+        if (isCancelled?.()) {
+          return;
+        }
         if (!("metalnessMap" in material)) {
           return;
         }
@@ -967,25 +1059,32 @@ async function applyHeroMaterialFallbacks(
         if (!texture) {
           return;
         }
+        if (isCancelled?.()) {
+          return;
+        }
         (material as THREE.MeshStandardMaterial).metalnessMap = texture;
         (material as THREE.MeshStandardMaterial).metalness = 0.6;
         (material as THREE.MeshStandardMaterial).roughness = 0.55;
         material.needsUpdate = true;
       };
 
-      pending.push(
-        applyMap(),
-        applyNormal(),
-        applySpecular(),
-        applyEmissive(),
-        applyMetalness(),
-      );
+      pending.push(applyMap(), applyNormal());
+      deferred.push(applySpecular, applyEmissive, applyMetalness);
     });
   });
 
   await Promise.all(pending);
   applyHeroMaterialTuning(model, heroKey);
   ensureHeroTangents(model, heroKey);
+  if (isCancelled?.()) {
+    return;
+  }
+  queueIdleWork(() => {
+    if (isCancelled?.()) {
+      return;
+    }
+    void runTaskQueue(deferred, 3);
+  });
 }
 
 function applyHeroMaterialTuning(model: THREE.Object3D, heroKey?: string) {
@@ -1420,6 +1519,7 @@ function Viewer3D(
     blend: 1,
     time: 0,
   });
+  const poseAppliedRef = useRef(false);
   const autoplayRef = useRef(autoplay);
   const speedRef = useRef(speed);
   const resetPose = useCallback(
@@ -1571,6 +1671,7 @@ function Viewer3D(
 
   useEffect(() => {
     setPoseTarget(poseStateRef.current, pose);
+    poseAppliedRef.current = false;
     if (mixerRef.current) {
       mixerRef.current.stopAllAction();
     }
@@ -1583,6 +1684,8 @@ function Viewer3D(
     if (!canvas || !container) {
       return;
     }
+    let cancelled = false;
+    const renderTier = getRenderTier();
 
     const scene = new THREE.Scene();
     sceneRef.current = scene;
@@ -1592,8 +1695,9 @@ function Viewer3D(
       antialias: true,
       alpha: true,
       preserveDrawingBuffer: true,
+      powerPreference: "high-performance",
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, renderTier.maxPixelRatio));
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
@@ -1617,7 +1721,9 @@ function Viewer3D(
     const composer = new EffectComposer(renderer);
     composer.setSize(initialWidth, initialHeight);
     composer.addPass(new RenderPass(scene, camera));
-    const ssaoPass = new SSAOPass(scene, camera, initialWidth, initialHeight);
+    const ssaoWidth = Math.max(1, Math.round(initialWidth * renderTier.ssaoScale));
+    const ssaoHeight = Math.max(1, Math.round(initialHeight * renderTier.ssaoScale));
+    const ssaoPass = new SSAOPass(scene, camera, ssaoWidth, ssaoHeight);
     ssaoPass.output = SSAOPass.OUTPUT.Default;
     composer.addPass(ssaoPass);
     composerRef.current = composer;
@@ -1687,11 +1793,15 @@ function Viewer3D(
       if (clientWidth === 0 || clientHeight === 0) {
         return;
       }
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, renderTier.maxPixelRatio));
       renderer.setSize(clientWidth, clientHeight, false);
       camera.aspect = clientWidth / clientHeight;
       camera.updateProjectionMatrix();
       composer.setSize(clientWidth, clientHeight);
-      ssaoPass.setSize(clientWidth, clientHeight);
+      ssaoPass.setSize(
+        Math.max(1, Math.round(clientWidth * renderTier.ssaoScale)),
+        Math.max(1, Math.round(clientHeight * renderTier.ssaoScale)),
+      );
       syncSSAOCamera();
     };
 
@@ -1712,22 +1822,43 @@ function Viewer3D(
 
     const clock = new THREE.Clock();
     let rafId = 0;
+    let lastRenderTime = 0;
 
-    const renderLoop = () => {
+    const renderLoop = (time = 0) => {
       rafId = requestAnimationFrame(renderLoop);
       const delta = clock.getDelta();
-      if (mixerRef.current) {
+      const controlsUpdated = controls.update();
+      const activeAction = currentActionRef.current;
+      const hasAction = Boolean(activeAction && activeAction.enabled && !activeAction.paused);
+      const poseState = poseStateRef.current;
+      const poseAnimating = autoplayRef.current || poseState.blend < 1;
+      const poseNeedsUpdate = poseAnimating || !poseAppliedRef.current;
+      const shouldAnimate = hasAction || poseNeedsUpdate || controlsUpdated;
+      const targetFps = shouldAnimate ? 60 : renderTier.idleFps;
+
+      if (time - lastRenderTime < 1000 / targetFps) {
+        return;
+      }
+      lastRenderTime = time;
+
+      if (hasAction && mixerRef.current) {
         mixerRef.current.update(delta);
       }
-      if (rigRef.current) {
-        const poseState = poseStateRef.current;
-        updatePoseState(poseState, delta, speedRef.current, autoplayRef.current);
+      if (rigRef.current && poseNeedsUpdate) {
+        if (poseAnimating) {
+          updatePoseState(poseState, delta, speedRef.current, autoplayRef.current);
+        }
         const toSignals = getPoseSignals(poseState.to, poseState.time);
         const blendedSignals =
           poseState.blend < 1
-            ? blendSignals(getPoseSignals(poseState.from, poseState.time), toSignals, poseState.blend)
+            ? blendSignals(
+                getPoseSignals(poseState.from, poseState.time),
+                toSignals,
+                poseState.blend,
+              )
             : toSignals;
         applyPoseToRig(rigRef.current, blendedSignals);
+        poseAppliedRef.current = true;
         const model = modelRef.current;
         if (model) {
           model.updateMatrixWorld(true);
@@ -1738,10 +1869,9 @@ function Viewer3D(
           });
         }
       }
-      if (!currentActionRef.current && modelRef.current) {
+      if (poseNeedsUpdate && !currentActionRef.current && modelRef.current) {
         updateHeroWeaponAttachment(modelRef.current, heroKey);
       }
-      controls.update();
       composer.render();
     };
 
@@ -1774,6 +1904,19 @@ function Viewer3D(
       loader.load(
         modelUrl,
         (model) => {
+          if (cancelled) {
+            model.traverse((child) => {
+              if (child instanceof THREE.Mesh) {
+                child.geometry.dispose();
+                if (Array.isArray(child.material)) {
+                  child.material.forEach((material) => material.dispose());
+                } else {
+                  child.material.dispose();
+                }
+              }
+            });
+            return;
+          }
           configureMaterials(model);
           void applyHeroMaterialFallbacks(
             model,
@@ -1782,6 +1925,7 @@ function Viewer3D(
             materialsRoot,
             baseMaterialsRoot,
             materialsPrefix,
+            () => cancelled,
           );
           scene.add(model);
           modelRef.current = model;
@@ -1791,6 +1935,7 @@ function Viewer3D(
             poseStateRef.current.time = 0;
             poseStateRef.current.from = poseStateRef.current.to;
             poseStateRef.current.blend = 1;
+            poseAppliedRef.current = false;
           }
 
           const mixer = new THREE.AnimationMixer(model);
@@ -1839,6 +1984,7 @@ function Viewer3D(
     window.addEventListener("resize", resize);
 
     return () => {
+      cancelled = true;
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", resize);
       controls.dispose();

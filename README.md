@@ -2,6 +2,10 @@
 
 A dynamic webapp for exploring Dota 2 hero assets in real time. The UI adapts per-hero (accent colors shift with the selected hero), and the viewer is built for lookdev, pose tuning, and lighting exploration directly in the browser.
 
+## Experimental branch notice
+
+The `code-optimisation` branch is **highly experimental**. Strictly dont merge. Expect performance tuning changes, incomplete features, and potential instability. Do not use it for production deployments without thorough validation.
+
 ## Project idea
 
 Make hero assets easy to browse, compare, and tune without external DCC tools. The viewer emphasizes fast iteration on materials, lighting, and poses while keeping the models and textures close to their original workshop-ready structure.
@@ -18,14 +22,6 @@ Make hero assets easy to browse, compare, and tune without external DCC tools. T
 - Texture resolution + fallbacks for Valve FBX + TGA layouts.
 - Optional local FBX loading via file picker.
 
-## UI samples
-
-![Kez sample](ui%20updates/kez_final.png)
-
-![Doom sample](ui%20updates/doom_final.png)
-
-![Monkey King sample](ui%20updates/monkey_final.png)
-
 ## Tech stack
 
 - Next.js 14
@@ -41,7 +37,6 @@ Make hero assets easy to browse, compare, and tune without external DCC tools. T
 Hero assets live under `assets/<hero>/` and are tracked with Git LFS. Each hero folder contains:
 
 - FBX model files (primary runtime source)
-- Optional MA files (reference only)
 - `materials/` textures (TGA/DDS) in Valve layout
 - `materials/base/` for shared base textures
 
@@ -68,19 +63,16 @@ At runtime the viewer:
 assets/
   kez/
     kez_econ.fbx
-    kez_econ.ma
     materials/
       base/
       ...
   doom_bringer/
     doom_econ.fbx
-    doom_econ.ma
     materials/
       base/
       ...
   monkey_king/
     monkey_king_econ.fbx
-    monkey_king_econ.ma
     materials/
       base/
       ...

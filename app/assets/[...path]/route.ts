@@ -15,6 +15,10 @@ const CONTENT_TYPES: Record<string, string> = {
   ".dds": "image/vnd-ms.dds",
   ".bmp": "image/bmp",
 };
+const CACHE_CONTROL =
+  process.env.NODE_ENV === "production"
+    ? "public, max-age=31536000, immutable"
+    : "no-cache";
 
 function resolveAssetPath(segments: string[]) {
   const resolvedPath = path.resolve(ASSETS_ROOT, ...segments);
@@ -49,7 +53,7 @@ export async function GET(
       headers: {
         "Content-Type": contentType,
         "Content-Length": stat.size.toString(),
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": CACHE_CONTROL,
       },
     });
   } catch (error) {

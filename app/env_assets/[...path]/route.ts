@@ -9,6 +9,10 @@ const ENV_ASSETS_ROOT = path.join(process.cwd(), "env_assets");
 const CONTENT_TYPES: Record<string, string> = {
   ".exr": "image/x-exr",
 };
+const CACHE_CONTROL =
+  process.env.NODE_ENV === "production"
+    ? "public, max-age=31536000, immutable"
+    : "no-cache";
 
 function resolveAssetPath(segments: string[]) {
   const resolvedPath = path.resolve(ENV_ASSETS_ROOT, ...segments);
@@ -43,7 +47,7 @@ export async function GET(
       headers: {
         "Content-Type": contentType,
         "Content-Length": stat.size.toString(),
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": CACHE_CONTROL,
       },
     });
   } catch (error) {
