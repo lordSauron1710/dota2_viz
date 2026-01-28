@@ -1,0 +1,47 @@
+# Changes
+
+This file lists project changes in chronological order based on the git commit history.
+
+- 2026-01-28 5c0fa9c Merge animation-logic
+- 2026-01-28 55c1d5c Fix lighting rig presets for animation logic
+- 2026-01-28 207806b Merge pull request #12 from lordSauron1710/animation-logic
+- 2026-01-28 4bb3da5 Update pose animations and rig helper
+- 2026-01-27 07db095 Add roadmap notes
+- 2026-01-27 7f075cd Merge pull request #11 from lordSauron1710/playback-logic
+- 2026-01-27 c037b29 Add screenshot capture to Next.js viewer
+- 2026-01-27 9d1fad9 Remove legacy static viewer
+- 2026-01-27 2e8ae5b Revise title and include asset ownership information
+- 2026-01-27 661d366 Merge branch 'main' of github.com:lordSauron1710/dota2_viz
+- 2026-01-27 0404fa9 Merge branch 'rendering-logic'
+- 2026-01-27 dc6d88a docs: clarify UI snapshot labels
+- 2026-01-27 eb2d4ce Merge pull request #10 from lordSauron1710/rendering-logic
+- 2026-01-27 7277d30 Merge pull request #9 from lordSauron1710/ui-updates
+- 2026-01-27 78712a2 Update UI controls and add current screenshot
+- 2026-01-27 890b032 Add texture resolution for hero materials
+- 2026-01-27 b49977a Update hero UI layout and controls
+- 2026-01-27 8dee046 Merge pull request #8 from lordSauron1710/initial-ui
+- 2026-01-27 793cb46 docs: add ui snapshot
+- 2026-01-27 bd00a07 docs: add ui snapshot
+- 2026-01-27 9a963f1 Delete kez_ui.png
+- 2026-01-27 86d144c Add files via upload
+- 2026-01-27 0cd0ad3 Merge pull request #7 from lordSauron1710/intital-ui
+- 2026-01-27 3ddeefe docs: clarify desired project state
+- 2026-01-27 fb154dd Merge pull request #6 from lordSauron1710/v2
+- 2026-01-27 eb3ae9a Merge branch 'main' into v2
+- 2026-01-27 37112fa chore: update deps and README
+- 2026-01-27 b2c36c1 v2 UI rebuild and asset routing
+- 2026-01-27 93794dd Update README.md
+- 2026-01-27 4c126fe Merge pull request #5 from lordSauron1710/v1
+- 2026-01-27 dcadf50 docs: add asset source link
+- 2026-01-27 ecce17d Merge pull request #4 from lordSauron1710/v1
+- 2026-01-27 17607a7 docs: merge v0 README with v1 details
+- 2026-01-27 5f38292 Merge pull request #2 from lordSauron1710/v1
+- 2026-01-27 de107bf fix: make viewer robust and load LFS assets
+- 2026-01-27 7d3095b docs: update viewer README
+- 2026-01-27 c4414c6 feat: rebuild three.js viewer app
+- 2026-01-27 9962e17 Merge pull request #1 from lordSauron1710/v0
+- 2026-01-27 f5621b6 docs: update README for asset notes
+- 2026-01-27 54632a8 chore: ignore DS_Store
+- 2026-01-27 c098287 chore: track assets with git lfs
+- 2026-01-27 972a1e4 v0
+- 2026-01-27 72c275c Initial commit
