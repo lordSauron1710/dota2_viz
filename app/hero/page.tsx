@@ -9,6 +9,7 @@ import { type UrlState, parseUrlState, serializeUrlState } from "../../lib/urlSt
 import "./hero.css";
 
 const DEFAULT_MODEL_URL = "/assets/kez/kez_econ.fbx";
+const DEFAULT_BACKDROP_COLOR = "#30180c";
 
 function areUrlStatesEqual(a: UrlState, b: UrlState) {
   return (
@@ -31,7 +32,7 @@ export default function HeroPage() {
 
   const [urlState, setUrlState] = useState<UrlState>(parsedState);
   const [backgroundMode, setBackgroundMode] = useState<"gradient" | "solid">("gradient");
-  const [backgroundColor, setBackgroundColor] = useState("#0b0b0b");
+  const [backgroundColor, setBackgroundColor] = useState(DEFAULT_BACKDROP_COLOR);
   const [environmentMode, setEnvironmentMode] = useState<"none" | "sky">("none");
   const [selectedHero, setSelectedHero] = useState<string>(
     HEROES.includes("Kez") ? "Kez" : HEROES[0] ?? "Kez",
@@ -78,6 +79,10 @@ export default function HeroPage() {
 
   const handleResetCamera = useCallback(() => {
     viewerRef.current?.resetCamera();
+    setUrlState((prev) => ({ ...prev, pose: "static" }));
+    setBackgroundMode("gradient");
+    setBackgroundColor(DEFAULT_BACKDROP_COLOR);
+    setEnvironmentMode("none");
   }, []);
 
   const handleToggleAutoplay = useCallback(() => {

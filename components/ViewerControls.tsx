@@ -124,7 +124,7 @@ export default function ViewerControls({
         </button>
         <button
           type="button"
-          className={`icon-button ${autoplay ? "is-active" : ""}`}
+          className="icon-button"
           onClick={onToggleAutoplay}
           aria-label={autoplay ? "Pause animation" : "Play animation"}
           title={autoplay ? "Pause animation" : "Play animation"}

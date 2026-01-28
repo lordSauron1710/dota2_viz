@@ -665,7 +665,7 @@ const SKY_EXR_URL = "/env_assets/citrus_orchard_road_puresky_4k.exr";
 type BackgroundMode = "gradient" | "solid";
 type EnvironmentMode = "none" | "sky";
 
-const DEFAULT_BG_COLOR = "#0b0b0b";
+const DEFAULT_BG_COLOR = "#30180c";
 
 function hexToRgbChannels(value: string) {
   const hex = value.trim().replace(/^#/, "");
