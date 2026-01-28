@@ -2,6 +2,8 @@
 
 This file lists project changes in chronological order based on the git commit history.
 
+- 2026-01-28 ae476c6 Merge branch 'lighting-logic'
+- 2026-01-28 c04ddea Make lighting always bright
 - 2026-01-28 5c0fa9c Merge animation-logic
 - 2026-01-28 55c1d5c Fix lighting rig presets for animation logic
 - 2026-01-28 207806b Merge pull request #12 from lordSauron1710/animation-logic
