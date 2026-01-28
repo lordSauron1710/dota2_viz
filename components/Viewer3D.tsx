@@ -114,6 +114,7 @@ function configureMaterials(object: THREE.Object3D) {
 
 export type Viewer3DHandle = {
   resetCamera: () => void;
+  captureScreenshot: () => void;
 };
 
 type Viewer3DProps = {
@@ -123,6 +124,7 @@ type Viewer3DProps = {
   speed: number;
   preset: LightingPreset;
   backgroundMode: "gradient" | "solid";
+  screenshotLabel?: string;
   onClipsLoaded: (clips: string[]) => void;
   onActiveClipChange: (clip: string | null) => void;
 };
@@ -135,6 +137,7 @@ function Viewer3D(
     speed,
     preset,
     backgroundMode,
+    screenshotLabel,
     onClipsLoaded,
     onActiveClipChange,
   }: Viewer3DProps,
@@ -158,8 +161,56 @@ function Viewer3D(
   const sceneRef = useRef<THREE.Scene | null>(null);
   const lightsGroupRef = useRef<THREE.Group | null>(null);
 
+  const captureScreenshot = () => {
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    const canvas = canvasRef.current;
+    if (!renderer || !scene || !camera || !canvas) {
+      return;
+    }
+
+    renderer.render(scene, camera);
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const sanitizedLabel = (screenshotLabel || "hero")
+      .trim()
+      .replace(/[^a-z0-9._-]+/gi, "_")
+      .replace(/^_+|_+$/g, "");
+    const filename = `${sanitizedLabel || "hero"}_${timestamp}.png`;
+
+    const downloadUrl = (url: string) => {
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    };
+
+    if (canvas.toBlob) {
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        downloadUrl(url);
+        URL.revokeObjectURL(url);
+      }, "image/png");
+      return;
+    }
+
+    try {
+      const dataUrl = canvas.toDataURL("image/png");
+      downloadUrl(dataUrl);
+    } catch (error) {
+      console.warn("Screenshot capture failed.", error);
+    }
+  };
+
   useImperativeHandle(ref, () => ({
     resetCamera: () => resetRef.current(),
+    captureScreenshot,
   }));
 
   useEffect(() => {
@@ -176,6 +227,7 @@ function Viewer3D(
       canvas,
       antialias: true,
       alpha: true,
+      preserveDrawingBuffer: true,
     });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputColorSpace = THREE.SRGBColorSpace;
