@@ -2,6 +2,7 @@
 
 This file lists project changes in chronological order based on the git commit history.
 
+- 2026-01-28 13:52:43 255055a fix: tune hero rendering and monkey king textures
 - 2026-01-28 10:47:08 28470f8 feat: hero accents and reset
 - 2026-01-28 10:03:03 e998589 feat: add hero lore sidebar and bios
 - 2026-01-28 09:23:14 2617cce ui: reset scene defaults + align playback button styling
