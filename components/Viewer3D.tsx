@@ -881,7 +881,12 @@ function Viewer3D(
           if (!child.target.parent) {
             lightsGroup.add(child.target);
           }
-          child.target.position.copy(targetCenter);
+          const offset = child.target.userData.focusOffset;
+          if (offset instanceof THREE.Vector3) {
+            child.target.position.copy(targetCenter).add(offset);
+          } else {
+            child.target.position.copy(targetCenter);
+          }
           child.target.updateMatrixWorld();
         }
       });
@@ -1098,7 +1103,12 @@ function Viewer3D(
         if (!child.target.parent) {
           lightsGroup.add(child.target);
         }
-        child.target.position.copy(targetCenter);
+        const offset = child.target.userData.focusOffset;
+        if (offset instanceof THREE.Vector3) {
+          child.target.position.copy(targetCenter).add(offset);
+        } else {
+          child.target.position.copy(targetCenter);
+        }
         child.target.updateMatrixWorld();
       }
     });

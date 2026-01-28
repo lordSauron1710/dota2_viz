@@ -105,7 +105,6 @@ The viewer persists key settings in the `/hero` query string:
 
 - `anim=<clipName>`
 - `speed=<float>`
-- `preset=<studio|neutral|rim>`
 - `autoplay=1|0`
 
 ## Asset source
