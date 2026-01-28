@@ -3,54 +3,26 @@
   flex-direction: column;
   gap: 22px;
   min-height: 100vh;
+  font-family: var(--font-display), "Bebas Neue", "Space Grotesk", sans-serif;
 }
 
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 20px;
   padding: 16px 20px;
   background: var(--bg-elevated);
   border: 1px solid var(--panel-border);
   border-radius: 18px;
   box-shadow: var(--panel-shadow);
+  text-align: center;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.brand__mark {
-  font-family: var(--font-display), "Bebas Neue", sans-serif;
-  font-size: 1.1rem;
-  letter-spacing: 0.32em;
-  padding: 10px 12px 10px 16px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(255, 122, 26, 0.95), rgba(255, 196, 108, 0.8));
-  color: #0a0a0a;
-  box-shadow: 0 8px 20px rgba(255, 122, 26, 0.35);
-}
-
-.brand__eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.3em;
-  font-size: 0.65rem;
-  color: var(--text-muted);
-}
-
-.brand h1 {
+.topbar__title {
   font-size: clamp(1.6rem, 3.6vw, 2.6rem);
   line-height: 1;
-  margin-top: 6px;
-}
-
-.topbar__actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  margin: 0;
 }
 
 .icon-button {
@@ -144,6 +116,13 @@
   height: 1px;
   background: rgba(255, 122, 26, 0.2);
   margin: 4px 0;
+}
+
+.panel__section--actions {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
 }
 
 .panel label {
@@ -340,13 +319,7 @@
 
 @media (max-width: 720px) {
   .topbar {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .topbar__actions {
-    width: 100%;
-    justify-content: flex-end;
+    padding: 14px 16px;
   }
 
   .viewer-hud {
