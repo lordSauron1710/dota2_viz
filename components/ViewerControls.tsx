@@ -8,11 +8,53 @@ type ViewerControlsProps = {
   speed: number;
   preset: LightingPreset;
   backgroundMode: "gradient" | "solid";
+  autoplay: boolean;
+  onReset: () => void;
+  onToggleAutoplay: () => void;
   onAnimationChange: (clip: string) => void;
   onSpeedChange: (value: number) => void;
   onPresetChange: (preset: LightingPreset) => void;
   onBackgroundChange: (mode: "gradient" | "solid") => void;
 };
+
+function ResetIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M4 12a8 8 0 1 0 2.3-5.7"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 5v5h5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" />
+      <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 5l12 7-12 7V5z" fill="currentColor" />
+    </svg>
+  );
+}
 
 export default function ViewerControls({
   animations,
@@ -20,6 +62,9 @@ export default function ViewerControls({
   speed,
   preset,
   backgroundMode,
+  autoplay,
+  onReset,
+  onToggleAutoplay,
   onAnimationChange,
   onSpeedChange,
   onPresetChange,
@@ -29,6 +74,33 @@ export default function ViewerControls({
 
   return (
     <aside className="panel panel--right">
+      <div className="panel__header">
+        <span>Playback</span>
+      </div>
+
+      <div className="panel__section panel__section--actions">
+        <button
+          type="button"
+          className="icon-button"
+          onClick={onReset}
+          aria-label="Reset view"
+          title="Reset view"
+        >
+          <ResetIcon />
+        </button>
+        <button
+          type="button"
+          className={`icon-button ${autoplay ? "is-active" : ""}`}
+          onClick={onToggleAutoplay}
+          aria-label={autoplay ? "Pause animation" : "Play animation"}
+          title={autoplay ? "Pause animation" : "Play animation"}
+        >
+          {autoplay ? <PauseIcon /> : <PlayIcon />}
+        </button>
+      </div>
+
+      <div className="panel__divider" />
+
       <div className="panel__header">
         <span>Animation</span>
         <span className="panel__badge">
