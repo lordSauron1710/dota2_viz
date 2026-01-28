@@ -2,10 +2,6 @@
 
 A dynamic webapp for exploring Dota 2 hero assets in real time. The UI adapts per-hero (accent colors shift with the selected hero), and the viewer is built for lookdev, pose tuning, and lighting exploration directly in the browser.
 
-## Experimental branch notice
-
-The `code-optimisation` branch is **highly experimental**. Strictly dont merge. Expect performance tuning changes, incomplete features, and potential instability. Do not use it for production deployments without thorough validation.
-
 ## Project idea
 
 Make hero assets easy to browse, compare, and tune without external DCC tools. The viewer emphasizes fast iteration on materials, lighting, and poses while keeping the models and textures close to their original workshop-ready structure.
