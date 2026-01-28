@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import type { LightingPreset } from "../lib/urlState";
+import type { LightingPreset, PoseName } from "../lib/urlState";
+import { POSE_OPTIONS } from "../lib/urlState";
 
 type ViewerControlsProps = {
+  pose: PoseName;
   speed: number;
   preset: LightingPreset;
   backgroundMode: "gradient" | "solid";
@@ -11,7 +12,7 @@ type ViewerControlsProps = {
   onReset: () => void;
   onToggleAutoplay: () => void;
   onScreenshot?: () => void;
-  onPoseChange?: (pose: string) => void;
+  onPoseChange: (pose: PoseName) => void;
   onSpeedChange: (value: number) => void;
   onPresetChange: (preset: LightingPreset) => void;
   onBackgroundChange: (mode: "gradient" | "solid") => void;
@@ -79,6 +80,7 @@ function ScreenshotIcon() {
 }
 
 export default function ViewerControls({
+  pose,
   speed,
   preset,
   backgroundMode,
@@ -91,9 +93,6 @@ export default function ViewerControls({
   onPresetChange,
   onBackgroundChange,
 }: ViewerControlsProps) {
-  const poseOptions = ["idle", "walking", "running", "stunned"];
-  const [selectedPose, setSelectedPose] = useState("idle");
-
   return (
     <aside className="panel panel--right">
       <div className="panel__header">
@@ -140,16 +139,15 @@ export default function ViewerControls({
         <label htmlFor="animation-select">Pose</label>
         <select
           id="animation-select"
-          value={selectedPose}
+          value={pose}
           onChange={(event) => {
-            const nextPose = event.target.value;
-            setSelectedPose(nextPose);
-            onPoseChange?.(nextPose);
+            const nextPose = event.target.value as PoseName;
+            onPoseChange(nextPose);
           }}
         >
-          {poseOptions.map((pose) => (
-            <option key={pose} value={pose}>
-              {pose}
+          {POSE_OPTIONS.map((option) => (
+            <option key={option} value={option}>
+              {option.toUpperCase()}
             </option>
           ))}
         </select>
@@ -186,6 +184,7 @@ export default function ViewerControls({
         >
           <option value="studio">Studio</option>
           <option value="neutral">Neutral</option>
+          <option value="dim">Dim</option>
           <option value="rim">Rim</option>
         </select>
       </div>
