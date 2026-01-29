@@ -18,6 +18,10 @@ Make hero assets easy to browse, compare, and tune without external DCC tools. T
 - Texture resolution + fallbacks for Valve FBX + PNG layouts.
 - Optional local FBX loading via file picker.
 
+## Live demo
+
+`https://dota2-viz.vercel.app`
+
 ## Hero Selected
 
 Kez
@@ -38,20 +42,25 @@ Doom
 
 ### Storage
 
-Hero assets live under `assets/<hero>/` and are tracked with Git LFS. Each hero folder contains:
+Hero textures live under `assets/<hero>/` and are tracked with Git LFS. Each hero folder contains:
 
-- FBX model files (primary runtime source)
 - `materials/` textures (PNG/DDS) in Valve layout
 - `materials/base/` for shared base textures
+
+Hero FBX models are served as static files from `public/models/`.
 
 See `downsize.md` for the downsizing pipeline and results.
 
 ### Serving
 
-The app serves `/assets/*` using a Next.js route handler that streams from the repo `assets/` directory:
+The app serves textures via `/assets/*` using a Next.js route handler that streams from the repo `assets/` directory:
 
 - Route: `app/assets/[...path]/route.ts`
-- Example: `assets/doom_bringer/doom_econ.fbx` is served as `/assets/doom_bringer/doom_econ.fbx`
+- Example: `assets/doom_bringer/materials/doom_head_color.png` is served as `/assets/doom_bringer/materials/doom_head_color.png`
+
+FBX models are served from `public/models/` as static files:
+
+- Example: `public/models/doom_econ.fbx` is served as `/models/doom_econ.fbx`
 
 ### Rendering
 
@@ -68,15 +77,17 @@ At runtime the viewer:
 ```
 assets/
   kez/
-    kez_econ.fbx
     materials/
       base/
       ...
   doom_bringer/
-    doom_econ.fbx
     materials/
       base/
       ...
+public/
+  models/
+    kez_econ.fbx
+    doom_econ.fbx
 ```
 
 ## Timeline (from CHANGES.md)
