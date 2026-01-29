@@ -92,15 +92,15 @@ public/
 
 ## Timeline (from CHANGES.md)
 
-2026-01-27 -> v0 baseline, Git LFS introduced, viewer rebuilt, UI v2 layout
-2026-01-27 -> rendering pipeline + playback logic + screenshots added
-2026-01-28 -> lighting presets, HDR environment, lore panel, and accent styling
-2026-01-28 -> multi-hero scaling and rendering fixes
-2026-01-28 -> asset cleanup: Lion and Brewmaster removed
-2026-01-28 -> hero selected UI samples + default static pose
-2026-01-29 -> downsizing pass for Kez + Doom assets (see downsize.md)
+1) 2026-01-27 -> v0 baseline, Git LFS introduced, viewer rebuilt, UI v2 layout
+2) 2026-01-27 -> rendering pipeline + playback logic + screenshots added
+3) 2026-01-28 -> lighting presets, HDR environment, lore panel, and accent styling
+4) 2026-01-28 -> multi-hero scaling and rendering fixes
+5) 2026-01-28 -> asset cleanup: Lion and Brewmaster removed
+6) 2026-01-28 -> hero selected UI samples + default static pose
+7) 2026-01-29 -> downsizing pass for Kez + Doom assets (see downsize.md)
 
-## Quick start
+## Quick start Locally
 
 ```bash
 npm install
