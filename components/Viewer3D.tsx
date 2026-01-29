@@ -148,6 +148,27 @@ const HERO_WEAPON_ALIGNMENT: Record<
   },
 };
 
+type WorldObject = {
+  uuid: string;
+  name: string;
+  parent: WorldObject | null;
+  position: THREE.Vector3;
+  quaternion: THREE.Quaternion;
+  scale: THREE.Vector3;
+  userData: Record<string, unknown>;
+  getWorldPosition: (target: THREE.Vector3) => THREE.Vector3;
+  updateMatrixWorld: (force?: boolean) => void;
+  worldToLocal: (vector: THREE.Vector3) => THREE.Vector3;
+};
+
+type BoneLike = WorldObject;
+type MeshGeometryLike = {
+  computeBoundingBox: () => void;
+  boundingBox?: THREE.Box3 | null;
+};
+type MeshLike = WorldObject & { geometry: MeshGeometryLike };
+type RenderTargetLike = { texture: THREE.Texture; dispose: () => void };
+
 type RigRestPose = {
   position: THREE.Vector3;
   quaternion: THREE.Quaternion;
@@ -155,19 +176,19 @@ type RigRestPose = {
 };
 
 type RigGroups = {
-  root: THREE.Bone | null;
-  hips: THREE.Bone | null;
-  spine: THREE.Bone[];
-  head: THREE.Bone | null;
-  jaw: THREE.Bone[];
-  armL: THREE.Bone[];
-  armR: THREE.Bone[];
-  legL: THREE.Bone[];
-  legR: THREE.Bone[];
+  root: BoneLike | null;
+  hips: BoneLike | null;
+  spine: BoneLike[];
+  head: BoneLike | null;
+  jaw: BoneLike[];
+  armL: BoneLike[];
+  armR: BoneLike[];
+  legL: BoneLike[];
+  legR: BoneLike[];
 };
 
 type Rig = {
-  bones: THREE.Bone[];
+  bones: BoneLike[];
   rest: Map<string, RigRestPose>;
   depth: Map<string, number>;
   groups: RigGroups;
@@ -175,10 +196,10 @@ type Rig = {
 
 type WeaponAttachment = {
   heroKey: string;
-  handBone: THREE.Bone;
-  weaponBone?: THREE.Bone;
-  weaponMesh?: THREE.Mesh;
-  parent: THREE.Object3D;
+  handBone: BoneLike;
+  weaponBone?: BoneLike;
+  weaponMesh?: MeshLike;
+  parent: WorldObject;
   meshCenter?: THREE.Vector3;
   offset?: THREE.Vector3;
 };
@@ -313,9 +334,9 @@ const POSE_PROFILES: Record<PoseName, PoseProfile> = {
   },
 };
 
-function getBoneDepth(bone: THREE.Bone) {
+function getBoneDepth(bone: BoneLike) {
   let depth = 0;
-  let current: THREE.Object3D | null = bone.parent;
+  let current: WorldObject | null = bone.parent;
   while (current && current instanceof THREE.Bone) {
     depth += 1;
     current = current.parent;
@@ -351,10 +372,10 @@ function detectSide(rawName: string, isLimb: boolean) {
 }
 
 function buildRig(model: THREE.Object3D): Rig | null {
-  const bones: THREE.Bone[] = [];
+  const bones: BoneLike[] = [];
   model.traverse((child) => {
     if (child instanceof THREE.Bone) {
-      bones.push(child);
+      bones.push(child as BoneLike);
     }
   });
   if (bones.length === 0) {
@@ -436,7 +457,7 @@ function buildRig(model: THREE.Object3D): Rig | null {
     }
   });
 
-  const getWorld = (bone: THREE.Bone) =>
+  const getWorld = (bone: BoneLike) =>
     worldPositions.get(bone.uuid) ?? new THREE.Vector3();
   const rootY = root ? getWorld(root).y : 0;
 
@@ -491,8 +512,8 @@ function buildRig(model: THREE.Object3D): Rig | null {
     groups.legR = rightLower.slice(0, 4);
   }
 
-  const dedupe = (group: THREE.Bone[]) => Array.from(new Set(group));
-  const sortByDepth = (group: THREE.Bone[]) =>
+  const dedupe = (group: BoneLike[]) => Array.from(new Set(group));
+  const sortByDepth = (group: BoneLike[]) =>
     group.sort(
       (a, b) => (depth.get(a.uuid) ?? 0) - (depth.get(b.uuid) ?? 0),
     );
@@ -637,7 +658,7 @@ function applyPoseToRig(rig: Rig, signals: PoseSignals) {
   }
 
   const applyLimb = (
-    bones: THREE.Bone[],
+    bones: BoneLike[],
     swing: number,
     side: "left" | "right",
     drop: number,
@@ -1190,14 +1211,14 @@ function ensureHeroTangents(model: THREE.Object3D, heroKey?: string) {
 
 function findBoneByNames(model: THREE.Object3D, names: string[]) {
   const normalized = names.map((name) => name.toLowerCase());
-  let result: THREE.Bone | null = null;
+  let result: BoneLike | null = null;
   model.traverse((child) => {
     if (result || !(child instanceof THREE.Bone)) {
       return;
     }
     const name = child.name.toLowerCase();
     if (normalized.some((candidate) => candidate === name)) {
-      result = child;
+      result = child as BoneLike;
     }
   });
   return result;
@@ -1205,14 +1226,14 @@ function findBoneByNames(model: THREE.Object3D, names: string[]) {
 
 function findMeshByHints(model: THREE.Object3D, hints: string[]) {
   const normalized = hints.map((hint) => hint.toLowerCase());
-  let result: THREE.Mesh | null = null;
+  let result: MeshLike | null = null;
   model.traverse((child) => {
     if (result || !(child instanceof THREE.Mesh)) {
       return;
     }
     const name = child.name.toLowerCase();
     if (normalized.some((hint) => name.includes(hint))) {
-      result = child;
+      result = child as MeshLike;
     }
   });
   return result;
@@ -1232,7 +1253,7 @@ function alignHeroWeapon(model: THREE.Object3D, heroKey?: string) {
 
   model.updateMatrixWorld(true);
 
-  const handBone = findBoneByNames(model, config.handBones);
+  const handBone = findBoneByNames(model, config.handBones) as BoneLike | null;
   if (!handBone) {
     return;
   }
@@ -1241,7 +1262,7 @@ function alignHeroWeapon(model: THREE.Object3D, heroKey?: string) {
   handBone.getWorldPosition(handPosition);
 
   const weaponBone = config.weaponBones
-    ? findBoneByNames(model, config.weaponBones)
+    ? (findBoneByNames(model, config.weaponBones) as BoneLike | null)
     : null;
 
   if (weaponBone) {
@@ -1282,7 +1303,7 @@ function alignHeroWeapon(model: THREE.Object3D, heroKey?: string) {
     return;
   }
 
-  const weaponMesh = findMeshByHints(model, config.meshHints);
+  const weaponMesh = findMeshByHints(model, config.meshHints) as MeshLike | null;
   if (!weaponMesh || weaponMesh.userData?.weaponAligned) {
     return;
   }
@@ -1513,7 +1534,7 @@ function Viewer3D(
   const ssaoPassRef = useRef<SSAOPass | null>(null);
   const rigRef = useRef<Rig | null>(null);
   const pmremGeneratorRef = useRef<THREE.PMREMGenerator | null>(null);
-  const skyEnvMapRef = useRef<THREE.WebGLRenderTarget | null>(null);
+  const skyEnvMapRef = useRef<RenderTargetLike | null>(null);
   const environmentRequestRef = useRef(0);
   const poseStateRef = useRef<PoseState>({
     from: pose,
@@ -1567,7 +1588,9 @@ function Viewer3D(
       texture.mapping = THREE.EquirectangularReflectionMapping;
       texture.colorSpace = THREE.LinearSRGBColorSpace;
 
-      const envMap = pmremGeneratorRef.current.fromEquirectangular(texture);
+      const envMap = pmremGeneratorRef.current.fromEquirectangular(
+        texture,
+      ) as RenderTargetLike;
       texture.dispose();
 
       if (requestId !== environmentRequestRef.current) {
@@ -1575,8 +1598,9 @@ function Viewer3D(
         return;
       }
 
-      if (skyEnvMapRef.current) {
-        skyEnvMapRef.current.dispose();
+      const previousEnvMap = skyEnvMapRef.current as RenderTargetLike | null;
+      if (previousEnvMap) {
+        previousEnvMap.dispose();
       }
       skyEnvMapRef.current = envMap;
       scene.environment = envMap.texture;
@@ -2015,8 +2039,9 @@ function Viewer3D(
         });
       }
       scene.clear();
-      if (skyEnvMapRef.current) {
-        skyEnvMapRef.current.dispose();
+      const currentEnvMap = skyEnvMapRef.current as RenderTargetLike | null;
+      if (currentEnvMap) {
+        currentEnvMap.dispose();
         skyEnvMapRef.current = null;
       }
       if (pmremGeneratorRef.current) {
