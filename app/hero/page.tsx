@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Suspense,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -98,7 +99,7 @@ function areUrlStatesEqual(a: UrlState, b: UrlState) {
   );
 }
 
-export default function HeroPage() {
+function HeroPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const viewerRef = useRef<Viewer3DHandle | null>(null);
@@ -399,5 +400,13 @@ export default function HeroPage() {
         />
       </div>
     </main>
+  );
+}
+
+export default function HeroPage() {
+  return (
+    <Suspense fallback={<div />}>
+      <HeroPageClient />
+    </Suspense>
   );
 }
