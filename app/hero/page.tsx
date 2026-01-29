@@ -16,7 +16,7 @@ import ViewerControls from "../../components/ViewerControls";
 import { type UrlState, parseUrlState, serializeUrlState } from "../../lib/urlState";
 import "./hero.css";
 
-const HERO_SELECTION = ["Kez", "Doom", "Monkey King"] as const;
+const HERO_SELECTION = ["Kez", "Doom"] as const;
 type HeroName = (typeof HERO_SELECTION)[number];
 
 const ASSET_BASE_URL = (process.env.NEXT_PUBLIC_ASSET_BASE_URL ?? "").replace(/\/$/, "");
@@ -40,16 +40,11 @@ const HERO_ASSETS: Record<
     materialsRoot: withAssetBase("/assets/doom_bringer/materials/"),
     baseMaterialsRoot: withAssetBase("/assets/doom_bringer/materials/base/"),
   },
-  "Monkey King": {
-    heroKey: "monkey_king",
-    modelUrl: withAssetBase("/assets/monkey_king/monkey_king_econ.fbx"),
-  },
 };
 
 const HERO_ACCENTS: Record<HeroName, { accent: string; accentStrong: string }> = {
   Kez: { accent: "#6ec6ff", accentStrong: "#b7e4ff" },
   Doom: { accent: "#d64545", accentStrong: "#ff7b7b" },
-  "Monkey King": { accent: "#58c97a", accentStrong: "#b7f0c6" },
 };
 
 const DEFAULT_ACCENT = HERO_ACCENTS.Kez;
@@ -62,10 +57,6 @@ const HERO_LORE: Record<HeroName, { image?: string; text?: string }> = {
   Kez: {
     text:
       "I was born with a price on my head. As I got better at causing trouble, that price went up. Every time Queen Imperia raised the bounty, I knew I must have done something right. I think that's the worst part about being gone so long in Icewrack... I've got to get that price back up to a respectable number.",
-  },
-  "Monkey King": {
-    text:
-      "For 500 years the mountain pressed down upon him, only his head free from the crushing weight of the stonewrought prison the elder gods had summoned to halt his childish rebellion. Moss grew along the lines of his exposed face, tufts of grass sprouted from his ears; his vision was framed in wildflowers reaching from the soil around his cheeks. Most thought him long dead, tormented by the gods for waging war against the heavens until naught but his legend survived. But, as the stories go, the Monkey King cannot die.\n\nSo he waited. Until the gods came to offer a chance at absolution, he endured. And when they did come to name the price, Sun Wukong accepted their charge: he would accompany a young acolyte on a secret pilgrimage, protect him from demons and dangers of the road, and guide the man home in possession of a coveted relic. Do that, and humbly obey the human's commands in service to their holy mission, and Wukong would prove himself reformed.\n\nFor a change, Sun Wukong fulfilled his oath to the gods with honor, and atoned for the sins of past insurrections. The acolyte, much learned in hardships, was returned to his home temple, relic in hand; and Wukong-finding himself for the first time in proper standing with any gods of consequence-was content for a short while to give up his old thirst for adventure and glory. But the Monkey King was born for mischief...and offending the gods never gets old.",
   },
 };
 const LORE_FALLBACK =

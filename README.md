@@ -8,14 +8,14 @@ Make hero assets easy to browse, compare, and tune without external DCC tools. T
 
 ## Features
 
-- Hero selection for Kez, Doom, and Monkey King.
+- Hero selection for Kez and Doom.
 - Pose controls with playback and speed tuning.
 - Dynamic UI accents that change with the selected hero.
 - Lighting presets plus environment HDR and backdrop controls.
 - Local screenshot capture after adjusting pose, environment, and background.
 - One-click reset of the scene state.
 - Pause/play control for the current animation.
-- Texture resolution + fallbacks for Valve FBX + TGA layouts.
+- Texture resolution + fallbacks for Valve FBX + PNG layouts.
 - Optional local FBX loading via file picker.
 
 ## Hero Selected
@@ -26,16 +26,13 @@ Kez
 Doom
 ![Doom UI sample](assets/ui_samples/doom_ui.png)
 
-Monkey King
-![Monkey King UI sample](assets/ui_samples/mk_ui.png)
-
 ## Tech stack
 
 - Next.js 14
 - React 18
 - Three.js 0.160
 - WebGL renderer with EffectComposer + SSAO pass
-- EXR HDR environment maps
+- HDR environment maps
 
 ## Model storage and rendering
 
@@ -44,8 +41,10 @@ Monkey King
 Hero assets live under `assets/<hero>/` and are tracked with Git LFS. Each hero folder contains:
 
 - FBX model files (primary runtime source)
-- `materials/` textures (TGA/DDS) in Valve layout
+- `materials/` textures (PNG/DDS) in Valve layout
 - `materials/base/` for shared base textures
+
+See `downsize.md` for the downsizing pipeline and results.
 
 ### Serving
 
@@ -59,7 +58,7 @@ The app serves `/assets/*` using a Next.js route handler that streams from the r
 At runtime the viewer:
 
 1) Loads FBX models with Three.js `FBXLoader`.
-2) Resolves textures using `TGALoader`/`DDSLoader` and Valve material path rules.
+2) Resolves textures using `TextureLoader`/`DDSLoader` and Valve material path rules.
 3) Applies fallback textures for missing maps and corrects color space for albedo/emissive.
 4) Tunes hero materials for readability while preserving original maps.
 5) Drives lighting with custom rigs, SSAO, and tone mapping.
@@ -78,11 +77,6 @@ assets/
     materials/
       base/
       ...
-  monkey_king/
-    monkey_king_econ.fbx
-    materials/
-      base/
-      ...
 ```
 
 ## Timeline (from CHANGES.md)
@@ -90,9 +84,10 @@ assets/
 2026-01-27 -> v0 baseline, Git LFS introduced, viewer rebuilt, UI v2 layout
 2026-01-27 -> rendering pipeline + playback logic + screenshots added
 2026-01-28 -> lighting presets, HDR environment, lore panel, and accent styling
-2026-01-28 -> multi-hero scaling and Monkey King rendering fixes
+2026-01-28 -> multi-hero scaling and rendering fixes
 2026-01-28 -> asset cleanup: Lion and Brewmaster removed
 2026-01-28 -> hero selected UI samples + default static pose
+2026-01-29 -> downsizing pass for Kez + Doom assets (see downsize.md)
 
 ## Quick start
 

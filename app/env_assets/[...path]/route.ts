@@ -8,6 +8,7 @@ const ENV_ASSETS_ROOT = path.join(process.cwd(), "env_assets");
 
 const CONTENT_TYPES: Record<string, string> = {
   ".exr": "image/x-exr",
+  ".hdr": "image/vnd.radiance",
 };
 const CACHE_CONTROL =
   process.env.NODE_ENV === "production"

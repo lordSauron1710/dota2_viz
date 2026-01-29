@@ -16,6 +16,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { DDSLoader } from "three/examples/jsm/loaders/DDSLoader.js";
 import { TGALoader } from "three/examples/jsm/loaders/TGALoader.js";
 import { EXRLoader } from "three/examples/jsm/loaders/EXRLoader.js";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { SSAOPass } from "three/examples/jsm/postprocessing/SSAOPass.js";
@@ -64,10 +65,10 @@ function getRenderTier(): RenderTier {
   };
 }
 
-const TEXTURE_EXTENSIONS = [".tga", ".png", ".jpg", ".jpeg", ".bmp", ".dds"];
+const TEXTURE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".bmp", ".dds"];
 THREE.Cache.enabled = true;
-const HERO_FORCE_TEXTURES = new Set(["monkey_king"]);
-const HERO_TANGENT_FIX = new Set(["monkey_king"]);
+const HERO_FORCE_TEXTURES = new Set<string>();
+const HERO_TANGENT_FIX = new Set<string>();
 const HERO_PART_ALIASES: Record<
   string,
   Record<string, string[]>
@@ -97,19 +98,11 @@ const HERO_PART_ALIASES: Record<
     weapon: ["weapon", "blade", "sword"],
     base: ["base"],
   },
-  monkey_king: {
-    armor: ["armor", "body", "torso"],
-    head: ["head", "face"],
-    shoulders: ["shoulder", "shoulders", "pad", "pads"],
-    weapon: ["weapon", "staff", "rod", "jingu", "bang"],
-    base: ["base"],
-  },
 };
 
 const HERO_DEFAULT_PART: Record<string, string> = {
   kez: "base",
   doom: "base",
-  monkey_king: "base",
 };
 
 const HERO_PREFIX: Record<string, string> = {};
@@ -123,15 +116,7 @@ const HERO_MATERIAL_TUNING: Record<
     specular?: number;
     shininess?: number;
   }
-> = {
-  monkey_king: {
-    albedoBoost: 1.6,
-    emissiveIntensity: 0.45,
-    emissiveColor: 0xffffff,
-    specular: 0x9c9c9c,
-    shininess: 18,
-  },
-};
+> = {};
 
 const HERO_WEAPON_ALIGNMENT: Record<
   string,
@@ -140,13 +125,7 @@ const HERO_WEAPON_ALIGNMENT: Record<
     handBones: string[];
     meshHints: string[];
   }
-> = {
-  monkey_king: {
-    weaponBones: ["weapon_base", "weapon"],
-    handBones: ["wrist_r", "hand_r"],
-    meshHints: ["weapon", "staff", "jingu", "bang"],
-  },
-};
+> = {};
 
 type WorldObject = {
   uuid: string;
@@ -771,8 +750,12 @@ function resolveTextureRoots(
 }
 
 function remapValveTexturePath(value: string) {
-  if (value.toLowerCase().endsWith(".vtf")) {
-    return `${value.slice(0, -4)}.tga`;
+  const lower = value.toLowerCase();
+  if (lower.endsWith(".vtf")) {
+    return `${value.slice(0, -4)}.png`;
+  }
+  if (lower.endsWith(".tga")) {
+    return `${value.slice(0, -4)}.png`;
   }
   return value;
 }
@@ -882,20 +865,20 @@ function getHeroTextureCandidates(
   const prefix = materialsPrefix;
   return {
     color: [
-      `${materialsRoot}${prefix}${stem}_color.tga`,
-      `${materialsRoot}${prefix}${stem}_diffuse.tga`,
+      `${materialsRoot}${prefix}${stem}_color.png`,
+      `${materialsRoot}${prefix}${stem}_diffuse.png`,
     ],
-    normal: [`${materialsRoot}${prefix}${stem}_normal.tga`],
-    specular: [`${materialsRoot}${prefix}${stem}_specularMask.tga`],
-    metalness: [`${materialsRoot}${prefix}${stem}_metalnessMask.tga`],
-    emissive: [`${materialsRoot}${prefix}${stem}_selfIllumMask.tga`],
-    rim: [`${materialsRoot}${prefix}${stem}_rimMask.tga`],
-    baseColor: [`${baseMaterialsRoot}${baseStem}_color.tga`],
-    baseNormal: [`${baseMaterialsRoot}${baseStem}_normal.tga`],
-    baseSpecular: [`${baseMaterialsRoot}${baseStem}_specularMask.tga`],
-    baseMetalness: [`${baseMaterialsRoot}${baseStem}_metalnessMask.tga`],
-    baseEmissive: [`${baseMaterialsRoot}${baseStem}_selfIllumMask.tga`],
-    baseRim: [`${baseMaterialsRoot}${baseStem}_rimMask.tga`],
+    normal: [`${materialsRoot}${prefix}${stem}_normal.png`],
+    specular: [`${materialsRoot}${prefix}${stem}_specularMask.png`],
+    metalness: [`${materialsRoot}${prefix}${stem}_metalnessMask.png`],
+    emissive: [`${materialsRoot}${prefix}${stem}_selfIllumMask.png`],
+    rim: [`${materialsRoot}${prefix}${stem}_rimMask.png`],
+    baseColor: [`${baseMaterialsRoot}${baseStem}_color.png`],
+    baseNormal: [`${baseMaterialsRoot}${baseStem}_normal.png`],
+    baseSpecular: [`${baseMaterialsRoot}${baseStem}_specularMask.png`],
+    baseMetalness: [`${baseMaterialsRoot}${baseStem}_metalnessMask.png`],
+    baseEmissive: [`${baseMaterialsRoot}${baseStem}_selfIllumMask.png`],
+    baseRim: [`${baseMaterialsRoot}${baseStem}_rimMask.png`],
   };
 }
 
@@ -1587,7 +1570,9 @@ function Viewer3D(
     const requestId = (environmentRequestRef.current += 1);
 
     try {
-      const texture = await new EXRLoader().loadAsync(SKY_EXR_URL);
+      const isHdr = SKY_EXR_URL.toLowerCase().endsWith(".hdr");
+      const loader = isHdr ? new RGBELoader() : new EXRLoader();
+      const texture = await loader.loadAsync(SKY_EXR_URL);
       texture.mapping = THREE.EquirectangularReflectionMapping;
       texture.colorSpace = THREE.LinearSRGBColorSpace;
 
