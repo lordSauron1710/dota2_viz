@@ -782,12 +782,14 @@ function queueIdleWork(task: () => void, timeout = 1200) {
     task();
     return;
   }
-  if ("requestIdleCallback" in window) {
-    (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number })
-      .requestIdleCallback(task, { timeout });
+  const win = window as Window & {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+  };
+  if (typeof win.requestIdleCallback === "function") {
+    win.requestIdleCallback(task, { timeout });
     return;
   }
-  window.setTimeout(task, 0);
+  win.setTimeout(task, 0);
 }
 
 async function runTaskQueue(tasks: Array<() => Promise<void>>, concurrency = 3) {
