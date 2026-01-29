@@ -4,11 +4,14 @@ import os from "node:os";
 import sharp from "sharp";
 import TGA from "tga";
 
-const MAX_DIMENSION = 2048;
-const ROOTS = [
-  "assets/kez/materials",
-  "assets/doom_bringer/materials",
-];
+const MAX_DIMENSION = Number.parseInt(
+  process.env.MAX_DIMENSION ?? "2048",
+  10,
+);
+const ROOTS = (process.env.ROOTS ?? "assets/kez/materials,assets/doom_bringer/materials")
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
 
 const EXTENSIONS = new Set([".tga", ".png", ".jpg", ".jpeg", ".bmp"]);
 
