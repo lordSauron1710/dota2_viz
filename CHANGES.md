@@ -4,6 +4,8 @@ This file lists project changes in chronological order based on the git commit h
 
 - 2026-01-29 09:15:00 chore: downsize Kez + Doom assets, drop Monkey King, switch to PNG textures
 - 2026-01-29 09:15:00 fix: HDR sky loading via RGBELoader + Doom eye material restore
+- 2026-01-29 09:28:00 fix: serve hero FBX from public models instead of assets route
+- 2026-01-29 10:05:00 chore: downscale Kez materials to 1K and remove noncritical maps
 - 2026-01-28 18:19:25 1b56626 Add hero UI samples and default static pose
 - 2026-01-28 15:25:51 chore: remove brewmaster assets and hero
 - 2026-01-28 14:06:15 chore: remove lion assets
