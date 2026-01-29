@@ -1443,7 +1443,10 @@ export type Viewer3DHandle = {
   captureScreenshot: () => void;
 };
 
-const SKY_EXR_URL = "/env_assets/citrus_orchard_road_puresky_4k.exr";
+const ENV_ASSET_BASE_URL = (process.env.NEXT_PUBLIC_ENV_ASSET_BASE_URL ?? "").replace(/\/$/, "");
+const SKY_EXR_URL = ENV_ASSET_BASE_URL
+  ? `${ENV_ASSET_BASE_URL}/citrus_orchard_puresky_1k.hdr`
+  : "/env_assets/citrus_orchard_puresky_1k.hdr";
 
 type BackgroundMode = "gradient" | "solid";
 type EnvironmentMode = "none" | "sky";

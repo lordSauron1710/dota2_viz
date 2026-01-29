@@ -19,6 +19,10 @@ import "./hero.css";
 const HERO_SELECTION = ["Kez", "Doom", "Monkey King"] as const;
 type HeroName = (typeof HERO_SELECTION)[number];
 
+const ASSET_BASE_URL = (process.env.NEXT_PUBLIC_ASSET_BASE_URL ?? "").replace(/\/$/, "");
+const withAssetBase = (assetPath: string) =>
+  ASSET_BASE_URL ? `${ASSET_BASE_URL}${assetPath}` : assetPath;
+
 const HERO_ASSETS: Record<
   HeroName,
   {
@@ -29,16 +33,16 @@ const HERO_ASSETS: Record<
     materialsPrefix?: string;
   }
 > = {
-  Kez: { heroKey: "kez", modelUrl: "/assets/kez/kez_econ.fbx" },
+  Kez: { heroKey: "kez", modelUrl: withAssetBase("/assets/kez/kez_econ.fbx") },
   Doom: {
     heroKey: "doom",
-    modelUrl: "/assets/doom_bringer/doom_econ.fbx",
-    materialsRoot: "/assets/doom_bringer/materials/",
-    baseMaterialsRoot: "/assets/doom_bringer/materials/base/",
+    modelUrl: withAssetBase("/assets/doom_bringer/doom_econ.fbx"),
+    materialsRoot: withAssetBase("/assets/doom_bringer/materials/"),
+    baseMaterialsRoot: withAssetBase("/assets/doom_bringer/materials/base/"),
   },
   "Monkey King": {
     heroKey: "monkey_king",
-    modelUrl: "/assets/monkey_king/monkey_king_econ.fbx",
+    modelUrl: withAssetBase("/assets/monkey_king/monkey_king_econ.fbx"),
   },
 };
 
