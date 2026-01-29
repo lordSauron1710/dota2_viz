@@ -20,7 +20,7 @@ Make hero assets easy to browse, compare, and tune without external DCC tools. T
 
 ## Live demo
 
-[Try it here:](https://dota2-viz.vercel.app)
+[dota2-viz.vercel.app](https://dota2-viz.vercel.app)
 
 ## Hero Selected
 
