@@ -33,10 +33,15 @@ const HERO_ASSETS: Record<
     materialsPrefix?: string;
   }
 > = {
-  Kez: { heroKey: "kez", modelUrl: withAssetBase("/assets/kez/kez_econ.fbx") },
+  Kez: {
+    heroKey: "kez",
+    modelUrl: withAssetBase("/models/kez_econ.fbx"),
+    materialsRoot: withAssetBase("/assets/kez/materials/"),
+    baseMaterialsRoot: withAssetBase("/assets/kez/materials/base/"),
+  },
   Doom: {
     heroKey: "doom",
-    modelUrl: withAssetBase("/assets/doom_bringer/doom_econ.fbx"),
+    modelUrl: withAssetBase("/models/doom_econ.fbx"),
     materialsRoot: withAssetBase("/assets/doom_bringer/materials/"),
     baseMaterialsRoot: withAssetBase("/assets/doom_bringer/materials/base/"),
   },
