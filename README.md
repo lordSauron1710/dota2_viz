@@ -118,3 +118,7 @@ https://www.dota2.com/workshop/requirements/
 ```
 
 All Dota 2 hero assets are credited to Valve Corporation.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
